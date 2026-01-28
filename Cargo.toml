@@ -1,0 +1,9 @@
+[package]
+name = "yast"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+iced = "0.14.0"
+livesplit-core = "0.13.0"
