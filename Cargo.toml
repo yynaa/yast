@@ -7,3 +7,6 @@ edition = "2024"
 anyhow = "1.0.100"
 iced = "0.14.0"
 livesplit-core = "0.13.0"
+log = "0.4.29"
+mlua = { version = "0.11.6", features = ["lua54", "vendored"] }
+pretty_env_logger = "0.5.0"

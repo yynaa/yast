@@ -2,14 +2,17 @@ use std::collections::BTreeMap;
 
 use iced::{Element, Subscription, Task, widget::space, window};
 
-use crate::app::timer::{Timer, TimerMessage};
+use crate::{
+  app::timer::{Timer, TimerMessage},
+  lua::LuaAppContext,
+};
 
 mod timer;
 
 pub trait Window: Send + Sync {
   fn title(&self) -> String;
-  fn update(&mut self, message: AppMessage) -> Task<AppMessage>;
-  fn view(&self) -> Element<'_, AppMessage>;
+  fn update(&mut self, context: &mut AppContext, message: AppMessage) -> Task<AppMessage>;
+  fn view(&self, context: &AppContext) -> Element<'_, AppMessage>;
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -20,6 +23,12 @@ pub enum WindowType {
 pub struct App {
   window_ids: BTreeMap<window::Id, WindowType>,
   windows: BTreeMap<WindowType, Box<dyn Window>>,
+
+  context: AppContext,
+}
+
+pub struct AppContext {
+  lua_context: LuaAppContext,
 }
 
 pub enum AppMessage {
@@ -35,6 +44,10 @@ impl App {
       Self {
         window_ids: BTreeMap::new(),
         windows: BTreeMap::new(),
+
+        context: AppContext {
+          lua_context: LuaAppContext::init().expect("couldn't initialize lua context"),
+        },
       },
       Timer::open_window().map(AppMessage::OpenTimer),
     )
@@ -61,7 +74,7 @@ impl App {
       }
       AppMessage::Timer(_) => {
         if let Some(inner) = self.windows.get_mut(&WindowType::Timer) {
-          inner.update(message)
+          inner.update(&mut self.context, message)
         } else {
           Task::none()
         }
@@ -72,7 +85,7 @@ impl App {
   fn view(&self, window_id: window::Id) -> Element<'_, AppMessage> {
     if let Some(window_type) = self.window_ids.get(&window_id) {
       if let Some(window) = self.windows.get(&window_type) {
-        return window.view().into();
+        return window.view(&self.context).into();
       }
     }
     space().into()
@@ -93,6 +106,8 @@ impl App {
 }
 
 pub fn run_app() -> iced::Result {
+  info!("starting YAST app");
+
   iced::daemon(App::new, App::update, App::view)
     .subscription(App::subscription)
     .title(App::title)

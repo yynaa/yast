@@ -1,10 +1,6 @@
-use iced::{
-  Element, Task,
-  widget::{center, space},
-  window,
-};
+use iced::{Element, Task, widget::center, window};
 
-use crate::app::{AppMessage, Window};
+use crate::app::{AppContext, AppMessage, Window};
 
 pub struct Timer {}
 
@@ -28,13 +24,13 @@ impl Window for Timer {
     String::from("YAST")
   }
 
-  fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+  fn update(&mut self, context: &mut AppContext, message: AppMessage) -> Task<AppMessage> {
     match message {
       _ => Task::none(),
     }
   }
 
-  fn view(&self) -> Element<'_, AppMessage> {
-    center("hello world!").into()
+  fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
+    center("helo there").into()
   }
 }
