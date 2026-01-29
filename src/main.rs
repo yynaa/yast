@@ -7,6 +7,7 @@ extern crate log;
 use crate::app::run_app;
 
 pub mod app;
+pub mod layout;
 pub mod lua;
 
 fn main() -> Result<()> {

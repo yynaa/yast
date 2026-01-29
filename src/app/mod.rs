@@ -1,9 +1,10 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use iced::{Element, Subscription, Task, widget::space, window};
 
 use crate::{
   app::timer::{Timer, TimerMessage},
+  layout::component::Component,
   lua::LuaAppContext,
 };
 
@@ -28,6 +29,7 @@ pub struct App {
 }
 
 pub struct AppContext {
+  components: HashMap<String, Component>,
   lua_context: LuaAppContext,
 }
 
@@ -46,6 +48,8 @@ impl App {
         windows: BTreeMap::new(),
 
         context: AppContext {
+          components: Component::import_all_from_directory("components/")
+            .expect("couldn't get components"),
           lua_context: LuaAppContext::init().expect("couldn't initialize lua context"),
         },
       },
@@ -85,7 +89,7 @@ impl App {
   fn view(&self, window_id: window::Id) -> Element<'_, AppMessage> {
     if let Some(window_type) = self.window_ids.get(&window_id) {
       if let Some(window) = self.windows.get(&window_type) {
-        return window.view(&self.context).into();
+        return window.view(&self.context);
       }
     }
     space().into()

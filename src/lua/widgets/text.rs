@@ -1,11 +1,11 @@
 use iced::{
-  Color, Length, Pixels,
+  Color, Element, Length, Pixels,
   alignment::{Horizontal, Vertical},
-  widget::{Text, text},
+  widget::text,
 };
 use mlua::prelude::*;
 
-use crate::lua::widgets::LuaWidget;
+use crate::{app::AppMessage, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
 pub struct LuaWidgetText {
@@ -17,8 +17,6 @@ pub struct LuaWidgetText {
   height: Option<Length>,
   size: Option<Pixels>,
 }
-
-impl LuaWidget for LuaWidgetText {}
 
 impl LuaWidgetText {
   pub fn new(content: String) -> Self {
@@ -33,7 +31,7 @@ impl LuaWidgetText {
     }
   }
 
-  pub fn build<'a>(self) -> Text<'a> {
+  pub fn build<'a>(self) -> Element<'a, AppMessage> {
     let mut t = text(self.content).color_maybe(self.color);
     if let Some(align_x) = self.align_x {
       t = t.align_x(align_x);
@@ -50,7 +48,7 @@ impl LuaWidgetText {
     if let Some(size) = self.size {
       t = t.size(size);
     }
-    t
+    t.into()
   }
 }
 
@@ -65,6 +63,8 @@ impl FromLua for LuaWidgetText {
 
 impl LuaUserData for LuaWidgetText {
   fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
+    methods.add_method("into", |_, w, ()| Ok(LuaWidget::Text(w.clone())));
+
     methods.add_method("align_x", |_, w, s: String| match s.as_str() {
       "left" => Ok(LuaWidgetText {
         align_x: Some(Horizontal::Left),
