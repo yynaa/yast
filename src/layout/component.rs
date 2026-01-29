@@ -10,7 +10,7 @@ use mlua::prelude::*;
 
 use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Component {
   name: String,
   author: String,

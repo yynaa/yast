@@ -6,5 +6,5 @@ function settings()
 end
 
 function widget()
-  return widgets.text("hello there"):into()
+  return widgets.text("hello there"):color(1.0,0.0,0.0,1.0):width("fill"):align_x("center"):into()
 end
