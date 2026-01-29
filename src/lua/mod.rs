@@ -1,8 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
-
 use anyhow::Result;
 use mlua::prelude::*;
 
+pub mod components;
 pub mod settings;
 pub mod widgets;
 
