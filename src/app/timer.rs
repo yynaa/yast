@@ -1,6 +1,9 @@
 use iced::{Element, Task, widget::center, window};
 
-use crate::app::{AppContext, AppMessage, Window};
+use crate::{
+  app::{AppContext, AppMessage, Window},
+  lua::widgets::text::LuaWidgetText,
+};
 
 pub struct Timer {}
 
@@ -31,6 +34,14 @@ impl Window for Timer {
   }
 
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
-    center("helo there").into()
+    const LUA_CODE: &str = include_str!("../../components/test.lua");
+    context
+      .lua_context
+      .lua
+      .load(format!("{}\n\nreturn widget()", LUA_CODE))
+      .eval::<LuaWidgetText>()
+      .unwrap()
+      .build()
+      .into()
   }
 }

@@ -6,8 +6,8 @@ extern crate log;
 
 use crate::app::run_app;
 
-mod app;
-mod lua;
+pub mod app;
+pub mod lua;
 
 fn main() -> Result<()> {
   pretty_env_logger::init_timed();
