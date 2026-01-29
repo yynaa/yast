@@ -41,13 +41,8 @@ impl Window for Timer {
       v.push(Box::new(i.clone()));
     }
 
-    center(
-      LayoutColumn::new(v)
-        .build(&context.lua_context.lua)
-        .unwrap(),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    LayoutColumn::new(v)
+      .build(&context.lua_context.lua)
+      .unwrap()
   }
 }

@@ -1,6 +1,6 @@
 use anyhow::Result;
-use iced::Element;
 use iced::widget::Column;
+use iced::{Element, Length};
 use mlua::prelude::*;
 
 use crate::app::AppMessage;
@@ -24,7 +24,12 @@ impl LayoutPart for LayoutColumn {
       .map(|b| b.as_ref().build(lua).unwrap())
       .collect::<Vec<Element<'a, AppMessage>>>();
 
-    Ok(Column::from_vec(contents).into())
+    Ok(
+      Column::from_vec(contents)
+        .height(Length::Fill)
+        .width(Length::Fill)
+        .into(),
+    )
   }
 }
 
