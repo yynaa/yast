@@ -8,5 +8,5 @@ pub mod component;
 pub mod containers;
 
 pub trait LayoutPart {
-  fn build<'a>(&self, lua: &Lua) -> Result<Element<'a, AppMessage>>;
+  fn build<'a>(&self) -> Result<Element<'a, AppMessage>>;
 }

@@ -17,11 +17,11 @@ impl LayoutColumn {
 }
 
 impl LayoutPart for LayoutColumn {
-  fn build<'a>(&self, lua: &Lua) -> Result<Element<'a, AppMessage>> {
+  fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
     let contents = self
       .inner
       .iter()
-      .map(|b| b.as_ref().build(lua).unwrap())
+      .map(|b| b.as_ref().build().unwrap())
       .collect::<Vec<Element<'a, AppMessage>>>();
 
     Ok(

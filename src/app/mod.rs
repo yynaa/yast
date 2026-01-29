@@ -1,6 +1,10 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+  collections::{BTreeMap, HashMap},
+  time::Duration,
+};
 
-use iced::{Element, Subscription, Task, widget::space, window};
+use iced::{Element, Subscription, Task, time::every, widget::space, window};
+use livesplit_core::{Run, Segment, Timer as LSTimer};
 
 use crate::{
   app::timer::{Timer, TimerMessage},
@@ -31,26 +35,38 @@ pub struct App {
 pub struct AppContext {
   components: HashMap<String, Component>,
   lua_context: LuaAppContext,
+
+  pub timer: LSTimer,
 }
 
 pub enum AppMessage {
   WindowClosed(window::Id),
   OpenTimer(window::Id),
+  UpdateView,
 
   Timer(TimerMessage),
 }
 
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
+    let mut run = Run::new();
+    run.push_segment(Segment::new(""));
+    let mut timer = LSTimer::new(run).unwrap();
+    timer.start();
+
+    let lua_context = LuaAppContext::init().expect("couldn't initialize lua context");
+
     (
       Self {
         window_ids: BTreeMap::new(),
         windows: BTreeMap::new(),
 
         context: AppContext {
-          components: Component::import_all_from_directory("components/")
+          components: Component::import_all_from_directory("components/", &lua_context.lua)
             .expect("couldn't get components"),
-          lua_context: LuaAppContext::init().expect("couldn't initialize lua context"),
+          lua_context,
+
+          timer,
         },
       },
       Timer::open_window().map(AppMessage::OpenTimer),
@@ -83,6 +99,7 @@ impl App {
           Task::none()
         }
       }
+      _ => Task::none(),
     }
   }
 
@@ -105,7 +122,10 @@ impl App {
   }
 
   fn subscription(&self) -> Subscription<AppMessage> {
-    window::close_events().map(AppMessage::WindowClosed)
+    Subscription::batch(vec![
+      window::close_events().map(AppMessage::WindowClosed),
+      every(Duration::from_secs_f64(1.0 / 30.0)).map(|_| AppMessage::UpdateView),
+    ])
   }
 }
 

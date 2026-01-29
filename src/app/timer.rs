@@ -3,6 +3,7 @@ use iced::{Element, Length, Task, widget::center, window};
 use crate::{
   app::{AppContext, AppMessage, Window},
   layout::{LayoutPart, containers::column::LayoutColumn},
+  lua::inject::inject_values_in_lua,
 };
 
 pub struct Timer {}
@@ -34,15 +35,13 @@ impl Window for Timer {
   }
 
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
-    let mut v: Vec<Box<dyn LayoutPart>> = Vec::new();
+    inject_values_in_lua(&context.lua_context.lua, context).unwrap();
 
-    for _ in 0..5 {
-      let i = context.components.get("Test Component").unwrap();
-      v.push(Box::new(i.clone()));
-    }
-
-    LayoutColumn::new(v)
-      .build(&context.lua_context.lua)
+    context
+      .components
+      .get("Test Component")
+      .unwrap()
+      .build()
       .unwrap()
   }
 }

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::Element;
 use mlua::prelude::*;
 
@@ -32,7 +33,7 @@ impl LuaWidget {
   }
 }
 
-pub fn widgets(lua: &Lua) -> LuaResult<()> {
+pub fn widgets(lua: &Lua) -> Result<()> {
   let widgets = lua.create_table()?;
 
   init_lua_widget_text(lua, &widgets)?;

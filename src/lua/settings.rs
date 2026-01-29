@@ -1,3 +1,4 @@
+use anyhow::Result;
 use mlua::prelude::*;
 
 #[derive(Clone)]
@@ -35,7 +36,7 @@ impl LuaUserData for LuaComponentSettings {
   }
 }
 
-pub fn component_settings(lua: &Lua) -> LuaResult<()> {
+pub fn component_settings(lua: &Lua) -> Result<()> {
   let component_settings_constructor =
     lua.create_function(|_, ()| Ok(LuaComponentSettings::new()))?;
   lua

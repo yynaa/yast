@@ -1,6 +1,7 @@
 use anyhow::Result;
 use mlua::prelude::*;
 
+pub mod inject;
 pub mod settings;
 pub mod widgets;
 
@@ -12,15 +13,12 @@ impl LuaAppContext {
   pub fn init() -> Result<Self> {
     let lua = Lua::new();
 
-    match settings::component_settings(&lua) {
-      Ok(it) => it,
-      Err(err) => return Err(anyhow::Error::msg(err.to_string())),
-    };
+    let package: LuaTable = lua.globals().get("package")?;
+    let current_path: String = package.get("path")?;
+    package.set("path", format!("{0}", current_path))?;
 
-    match widgets::widgets(&lua) {
-      Ok(it) => it,
-      Err(err) => return Err(anyhow::Error::msg(err.to_string())),
-    };
+    settings::component_settings(&lua)?;
+    widgets::widgets(&lua)?;
 
     Ok(Self { lua })
   }

@@ -14,46 +14,30 @@ use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
 pub struct Component {
   name: String,
   author: String,
-  code: String,
+  widget: LuaFunction,
 }
 
 impl LayoutPart for Component {
-  fn build<'a>(&self, lua: &Lua) -> Result<Element<'a, AppMessage>> {
-    let e = lua
-      .load(format!("{}\n\nreturn widget()", self.code))
-      .eval::<LuaWidget>()
-      .unwrap()
-      .build();
+  fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
+    let e = self.widget.call::<LuaWidget>(())?.build();
     Ok(e)
   }
 }
 
 impl Component {
-  pub fn from_str(s: String) -> Result<Self> {
-    let mut split = s.split("\n").filter(|s| s.starts_with("---"));
-    let name = split
-      .next()
-      .ok_or(anyhow::Error::msg("missing name manifest"))?
-      .split_at(3)
-      .1
-      .trim()
-      .to_string();
-    let author = split
-      .next()
-      .ok_or(anyhow::Error::msg("missing author manifest"))?
-      .split_at(3)
-      .1
-      .trim()
-      .to_string();
+  pub fn from_str(s: String, lua: &Lua) -> Result<Self> {
+    let t = lua.load(s).eval::<LuaTable>()?;
 
-    Ok(Self {
-      name,
-      author,
-      code: s,
-    })
+    let r = Self {
+      name: t.get("name")?,
+      author: t.get("author")?,
+      widget: t.get("widget")?,
+    };
+
+    Ok(r)
   }
 
-  pub fn import_all_from_directory(p: &str) -> Result<HashMap<String, Self>> {
+  pub fn import_all_from_directory(p: &str, lua: &Lua) -> Result<HashMap<String, Self>> {
     let path = Path::new(p);
     let mut components = HashMap::new();
     if path.is_dir() {
@@ -61,7 +45,7 @@ impl Component {
         let entry = file?.path();
         if entry.is_file() {
           let st = read_to_string(entry)?;
-          let comp = Self::from_str(st)?;
+          let comp = Self::from_str(st, lua)?;
           components.insert(comp.name.clone(), comp);
         }
       }
