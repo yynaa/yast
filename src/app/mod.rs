@@ -3,15 +3,19 @@ use std::{
   time::Duration,
 };
 
-use iced::{Element, Subscription, Task, time::every, widget::space, window};
+use iced::{Element, Subscription, Task, Theme, time::every, widget::space, window};
 use livesplit_core::{Run, Segment, Timer as LSTimer};
 
 use crate::{
-  app::timer::{Timer, TimerMessage},
-  layout::component::Component,
+  app::{
+    layout_editor::{LayoutEditor, LayoutEditorMessage},
+    timer::{Timer, TimerMessage},
+  },
+  layout::{Layout, component::Component},
   lua::LuaAppContext,
 };
 
+mod layout_editor;
 mod timer;
 
 pub trait Window: Send + Sync {
@@ -23,6 +27,7 @@ pub trait Window: Send + Sync {
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum WindowType {
   Timer,
+  LayoutEditor,
 }
 
 pub struct App {
@@ -36,15 +41,21 @@ pub struct AppContext {
   components: HashMap<String, Component>,
   lua_context: LuaAppContext,
 
+  pub layout: Layout,
+
   pub timer: LSTimer,
 }
 
+#[derive(Clone, Debug)]
 pub enum AppMessage {
   WindowClosed(window::Id),
   OpenTimer(window::Id),
+  RequestLayoutEditor,
+  OpenLayoutEditor(window::Id),
   UpdateView,
 
   Timer(TimerMessage),
+  LayoutEditor(LayoutEditorMessage),
 }
 
 impl App {
@@ -66,6 +77,7 @@ impl App {
             .expect("couldn't get components"),
           lua_context,
 
+          layout: Layout::default(),
           timer,
         },
       },
@@ -92,8 +104,24 @@ impl App {
         self.windows.insert(WindowType::Timer, Box::new(timer));
         Task::none()
       }
+      AppMessage::RequestLayoutEditor => {
+        LayoutEditor::open_window().map(AppMessage::OpenLayoutEditor)
+      }
+      AppMessage::OpenLayoutEditor(id) => {
+        let le = LayoutEditor::new();
+        self.window_ids.insert(id, WindowType::LayoutEditor);
+        self.windows.insert(WindowType::LayoutEditor, Box::new(le));
+        Task::none()
+      }
       AppMessage::Timer(_) => {
         if let Some(inner) = self.windows.get_mut(&WindowType::Timer) {
+          inner.update(&mut self.context, message)
+        } else {
+          Task::none()
+        }
+      }
+      AppMessage::LayoutEditor(_) => {
+        if let Some(inner) = self.windows.get_mut(&WindowType::LayoutEditor) {
           inner.update(&mut self.context, message)
         } else {
           Task::none()
@@ -135,5 +163,6 @@ pub fn run_app() -> iced::Result {
   iced::daemon(App::new, App::update, App::view)
     .subscription(App::subscription)
     .title(App::title)
+    .theme(Theme::Dark)
     .run()
 }

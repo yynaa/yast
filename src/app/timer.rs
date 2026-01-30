@@ -1,13 +1,19 @@
-use iced::{Element, Length, Task, widget::center, window};
+use iced::{
+  Element, Length, Task,
+  widget::{button, column},
+  window,
+};
+use iced_aw::ContextMenu;
 
 use crate::{
   app::{AppContext, AppMessage, Window},
-  layout::{LayoutPart, containers::column::LayoutColumn},
+  layout::LayoutPart,
   lua::inject::inject_values_in_lua,
 };
 
 pub struct Timer {}
 
+#[derive(Clone, Debug)]
 pub enum TimerMessage {}
 
 impl Timer {
@@ -37,11 +43,24 @@ impl Window for Timer {
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
     inject_values_in_lua(&context.lua_context.lua, context).unwrap();
 
-    context
+    let inner = context
       .components
       .get("Test Component")
       .unwrap()
       .build()
-      .unwrap()
+      .unwrap();
+
+    ContextMenu::new(inner, || {
+      column(vec![
+        button("splits editor").width(Length::Fill).into(),
+        button("layout editor")
+          .width(Length::Fill)
+          .on_press(AppMessage::RequestLayoutEditor)
+          .into(),
+      ])
+      .width(Length::Fixed(200.))
+      .into()
+    })
+    .into()
   }
 }

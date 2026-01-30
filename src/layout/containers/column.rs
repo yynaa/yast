@@ -31,6 +31,18 @@ impl LayoutPart for LayoutColumn {
         .into(),
     )
   }
+
+  fn get_name(&self) -> String {
+    "Column".to_string()
+  }
+
+  fn get_author(&self) -> String {
+    "YAST".to_string()
+  }
+
+  fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
+    Some(&self.inner)
+  }
 }
 
 impl LayoutContainer for LayoutColumn {}

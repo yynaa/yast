@@ -22,6 +22,18 @@ impl LayoutPart for Component {
     let e = self.widget.call::<LuaWidget>(())?.build();
     Ok(e)
   }
+
+  fn get_name(&self) -> String {
+    self.name.clone()
+  }
+
+  fn get_author(&self) -> String {
+    self.author.clone()
+  }
+
+  fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
+    None
+  }
 }
 
 impl Component {
