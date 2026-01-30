@@ -1,10 +1,8 @@
 use anyhow::Result;
 use iced::{
   Color, Element, Length, Theme,
-  theme::Base,
   widget::{button, text},
 };
-use iced_aw::widget::labeled_frame::Catalog;
 
 use crate::{
   app::{AppMessage, layout_editor::LayoutEditorMessage},

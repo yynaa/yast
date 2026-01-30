@@ -1,9 +1,6 @@
-use std::fmt::Display;
-
 use anyhow::Result;
 use dyn_clone::DynClone;
 use iced::Element;
-use mlua::prelude::*;
 
 use crate::app::AppMessage;
 

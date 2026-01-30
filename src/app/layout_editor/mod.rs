@@ -1,5 +1,5 @@
 use iced::{
-  Alignment, Element, Length, Task,
+  Element, Length, Task,
   widget::{button, column, combo_box, row, text, text_input},
   window,
 };
@@ -12,7 +12,7 @@ use crate::{
       tree::{build_tree_from_layout_part, get_mut_component_at_path},
     },
   },
-  layout::{LayoutPart, component::Component},
+  layout::component::Component,
 };
 
 mod component_editor;
@@ -126,7 +126,6 @@ impl Window for LayoutEditor {
             unreachable!()
           }
         }
-        _ => Task::none(),
       },
       _ => Task::none(),
     }

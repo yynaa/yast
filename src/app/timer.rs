@@ -7,7 +7,6 @@ use iced_aw::ContextMenu;
 
 use crate::{
   app::{AppContext, AppMessage, Window},
-  layout::LayoutPart,
   lua::inject::inject_values_in_lua,
 };
 
@@ -34,7 +33,7 @@ impl Window for Timer {
     String::from("YAST")
   }
 
-  fn update(&mut self, context: &mut AppContext, message: AppMessage) -> Task<AppMessage> {
+  fn update(&mut self, _context: &mut AppContext, message: AppMessage) -> Task<AppMessage> {
     match message {
       _ => Task::none(),
     }

@@ -1,28 +1,22 @@
-use iced::{alignment::Horizontal, widget::column, Element, Length, Padding, Pixels};
+use iced::{widget::stack, Element, Length};
 use mlua::prelude::*;
 
 use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
-pub struct LuaWidgetColumn {
+pub struct LuaWidgetStack {
   inner: Vec<LuaWidget>,
-  spacing: Option<Pixels>,
-  padding: Option<Padding>,
   width: Option<Length>,
   height: Option<Length>,
-  align_x: Option<Horizontal>,
   clip: Option<bool>,
 }
 
-impl LuaWidgetColumn {
+impl LuaWidgetStack {
   pub fn new(inner: Vec<LuaWidget>) -> Self {
     Self {
       inner,
-      spacing: None,
-      padding: None,
       width: None,
       height: None,
-      align_x: None,
       clip: None,
     }
   }
@@ -34,32 +28,23 @@ impl LuaWidgetColumn {
       .map(|e| e.clone().build(tree))
       .collect::<Vec<Element<'a, AppMessage>>>();
 
-    let mut c = column(inner_built);
+    let mut s = stack(inner_built);
 
-    if let Some(spacing) = self.spacing {
-      c = c.spacing(spacing);
-    }
-    if let Some(padding) = self.padding {
-      c = c.padding(padding);
-    }
     if let Some(width) = self.width {
-      c = c.width(width);
+      s = s.width(width);
     }
     if let Some(height) = self.height {
-      c = c.height(height);
-    }
-    if let Some(align_x) = self.align_x {
-      c = c.align_x(align_x);
+      s = s.height(height);
     }
     if let Some(clip) = self.clip {
-      c = c.clip(clip);
+      s = s.clip(clip);
     }
 
-    c.into()
+    s.into()
   }
 }
 
-impl FromLua for LuaWidgetColumn {
+impl FromLua for LuaWidgetStack {
   fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
     match value {
       LuaValue::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
@@ -68,49 +53,30 @@ impl FromLua for LuaWidgetColumn {
   }
 }
 
-impl LuaUserData for LuaWidgetColumn {
+impl LuaUserData for LuaWidgetStack {
   fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
-    methods.add_method("into", |_, w, ()| Ok(LuaWidget::Column(w.clone())));
-
-    methods.add_method("spacing", |_, w, spacing: f32| {
-      Ok(LuaWidgetColumn {
-        spacing: Some(Pixels(spacing)),
-        ..w.clone()
-      })
-    });
-
-    methods.add_method("padding", |_, w, (t, r, b, l): (f32, f32, f32, f32)| {
-      Ok(LuaWidgetColumn {
-        padding: Some(Padding {
-          top: t,
-          right: r,
-          bottom: b,
-          left: l,
-        }),
-        ..w.clone()
-      })
-    });
+    methods.add_method("into", |_, w, ()| Ok(LuaWidget::Stack(w.clone())));
 
     methods.add_method(
       "width",
       |_, w, (typ, unit): (String, Option<f32>)| match typ.as_str() {
-        "fill" => Ok(LuaWidgetColumn {
+        "fill" => Ok(LuaWidgetStack {
           width: Some(Length::Fill),
           ..w.clone()
         }),
         "fill_portion" => match unit {
-          Some(u) => Ok(LuaWidgetColumn {
+          Some(u) => Ok(LuaWidgetStack {
             width: Some(Length::FillPortion(u as u16)),
             ..w.clone()
           }),
           None => Err(LuaError::external(anyhow::Error::msg("missing unit"))),
         },
-        "shrink" => Ok(LuaWidgetColumn {
+        "shrink" => Ok(LuaWidgetStack {
           width: Some(Length::Shrink),
           ..w.clone()
         }),
         "fixed" => match unit {
-          Some(u) => Ok(LuaWidgetColumn {
+          Some(u) => Ok(LuaWidgetStack {
             width: Some(Length::Fixed(u)),
             ..w.clone()
           }),
@@ -123,23 +89,23 @@ impl LuaUserData for LuaWidgetColumn {
     methods.add_method(
       "height",
       |_, w, (typ, unit): (String, Option<f32>)| match typ.as_str() {
-        "fill" => Ok(LuaWidgetColumn {
+        "fill" => Ok(LuaWidgetStack {
           height: Some(Length::Fill),
           ..w.clone()
         }),
         "fill_portion" => match unit {
-          Some(u) => Ok(LuaWidgetColumn {
+          Some(u) => Ok(LuaWidgetStack {
             height: Some(Length::FillPortion(u as u16)),
             ..w.clone()
           }),
           None => Err(LuaError::external(anyhow::Error::msg("missing unit"))),
         },
-        "shrink" => Ok(LuaWidgetColumn {
+        "shrink" => Ok(LuaWidgetStack {
           height: Some(Length::Shrink),
           ..w.clone()
         }),
         "fixed" => match unit {
-          Some(u) => Ok(LuaWidgetColumn {
+          Some(u) => Ok(LuaWidgetStack {
             height: Some(Length::Fixed(u)),
             ..w.clone()
           }),
@@ -149,26 +115,8 @@ impl LuaUserData for LuaWidgetColumn {
       },
     );
 
-    methods.add_method("align_x", |_, w, s: String| match s.as_str() {
-      "left" => Ok(LuaWidgetColumn {
-        align_x: Some(Horizontal::Left),
-        ..w.clone()
-      }),
-      "right" => Ok(LuaWidgetColumn {
-        align_x: Some(Horizontal::Right),
-        ..w.clone()
-      }),
-      "center" => Ok(LuaWidgetColumn {
-        align_x: Some(Horizontal::Center),
-        ..w.clone()
-      }),
-      _ => Err(LuaError::external(anyhow::Error::msg(
-        "incorrect alignment",
-      ))),
-    });
-
     methods.add_method("clip", |_, w, clip: bool| {
-      Ok(LuaWidgetColumn {
+      Ok(LuaWidgetStack {
         clip: Some(clip),
         ..w.clone()
       })
@@ -176,9 +124,9 @@ impl LuaUserData for LuaWidgetColumn {
   }
 }
 
-pub(super) fn init_lua_widget_column(lua: &Lua, t: &LuaTable) -> LuaResult<()> {
+pub(super) fn init_lua_widget_stack(lua: &Lua, t: &LuaTable) -> LuaResult<()> {
   let constructor =
-    lua.create_function(|_, inner: Vec<LuaWidget>| Ok(LuaWidgetColumn::new(inner)))?;
-  t.set("column", constructor)?;
+    lua.create_function(|_, inner: Vec<LuaWidget>| Ok(LuaWidgetStack::new(inner)))?;
+  t.set("stack", constructor)?;
   Ok(())
 }

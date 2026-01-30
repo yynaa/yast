@@ -1,7 +1,7 @@
 use anyhow::Result;
 use iced::{
   Alignment, Element, Length, Pixels,
-  widget::{button, column, combo_box, row, space, text},
+  widget::{button, column, combo_box, row, text},
 };
 
 use crate::{
@@ -57,7 +57,7 @@ pub fn component_editor<'a>(
 
     column_vec.push(row(layout_part_attributes_row_vec).padding(5.0).into());
 
-    if let Some(children) = children {
+    if let Some(_) = children {
       column_vec.push(
         row(vec![
           combo_box(

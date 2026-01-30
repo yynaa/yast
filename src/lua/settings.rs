@@ -9,7 +9,7 @@ pub struct LuaComponentSetting {
 
 #[derive(Clone)]
 pub enum LuaComponentSettingValue {
-  Boolean { default: bool },
+  Boolean { value: bool, default: bool },
 }
 
 #[derive(Clone)]
@@ -29,7 +29,10 @@ impl LuaUserData for LuaComponentSettings {
       let mut settings = settings.clone();
       settings.values.push(LuaComponentSetting {
         name,
-        value: LuaComponentSettingValue::Boolean { default },
+        value: LuaComponentSettingValue::Boolean {
+          value: default,
+          default,
+        },
       });
       Ok(settings)
     });

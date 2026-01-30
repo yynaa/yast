@@ -12,7 +12,7 @@ pub struct LuaWidgetText {
   content: String,
   align_x: Option<Horizontal>,
   align_y: Option<Vertical>,
-  color: Option<Color>,
+  style: Option<text::Style>,
   width: Option<Length>,
   height: Option<Length>,
   size: Option<Pixels>,
@@ -24,7 +24,7 @@ impl LuaWidgetText {
       content,
       align_x: None,
       align_y: None,
-      color: None,
+      style: None,
       width: None,
       height: None,
       size: None,
@@ -32,12 +32,15 @@ impl LuaWidgetText {
   }
 
   pub fn build<'a>(self) -> Element<'a, AppMessage> {
-    let mut t = text(self.content).color_maybe(self.color);
+    let mut t = text(self.content);
     if let Some(align_x) = self.align_x {
       t = t.align_x(align_x);
     }
     if let Some(align_y) = self.align_y {
       t = t.align_y(align_y);
+    }
+    if let Some(style) = self.style {
+      t = t.style(move |_| style);
     }
     if let Some(width) = self.width {
       t = t.width(width);
@@ -101,9 +104,11 @@ impl LuaUserData for LuaWidgetText {
       ))),
     });
 
-    methods.add_method("color", |_, w, (r, g, b, a): (f32, f32, f32, f32)| {
+    methods.add_method("style", |_, w, color: Option<[f32; 4]>| {
       Ok(LuaWidgetText {
-        color: Some(Color::from_rgba(r, g, b, a)),
+        style: Some(text::Style {
+          color: color.map(|c| Color::from_rgba(c[0], c[1], c[2], c[3])),
+        }),
         ..w.clone()
       })
     });
