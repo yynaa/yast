@@ -34,6 +34,10 @@ impl LayoutPart for Component {
   fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
     None
   }
+
+  fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>> {
+    None
+  }
 }
 
 impl Component {

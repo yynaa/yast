@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use iced::Element;
 use mlua::prelude::*;
@@ -13,6 +15,26 @@ pub trait LayoutPart {
   fn get_name(&self) -> String;
   fn get_author(&self) -> String;
   fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>>;
+  fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>>;
+}
+
+#[derive(Debug, Clone)]
+pub enum LayoutPartIdentifier {
+  Component(String),
+  Column,
+}
+
+impl Display for LayoutPartIdentifier {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(
+      f,
+      "{}",
+      match self {
+        LayoutPartIdentifier::Column => "Column",
+        LayoutPartIdentifier::Component(s) => s,
+      }
+    )
+  }
 }
 
 // serializing this may involve something like https://github.com/dtolnay/typetag

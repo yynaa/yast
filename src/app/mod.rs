@@ -18,7 +18,7 @@ use crate::{
 mod layout_editor;
 mod timer;
 
-pub trait Window: Send + Sync {
+pub trait Window {
   fn title(&self) -> String;
   fn update(&mut self, context: &mut AppContext, message: AppMessage) -> Task<AppMessage>;
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage>;
@@ -108,7 +108,7 @@ impl App {
         LayoutEditor::open_window().map(AppMessage::OpenLayoutEditor)
       }
       AppMessage::OpenLayoutEditor(id) => {
-        let le = LayoutEditor::new();
+        let le = LayoutEditor::new(&self.context);
         self.window_ids.insert(id, WindowType::LayoutEditor);
         self.windows.insert(WindowType::LayoutEditor, Box::new(le));
         Task::none()

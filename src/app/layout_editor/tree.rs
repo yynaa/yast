@@ -1,16 +1,37 @@
+use anyhow::Result;
 use iced::{
-  Element, Length,
+  Color, Element, Length, Theme,
+  theme::Base,
   widget::{button, text},
 };
+use iced_aw::widget::labeled_frame::Catalog;
 
 use crate::{
   app::{AppMessage, layout_editor::LayoutEditorMessage},
   layout::LayoutPart,
 };
 
+pub fn get_mut_component_at_path(
+  p: &mut Box<dyn LayoutPart>,
+  mut path: Vec<usize>,
+) -> Result<&mut Box<dyn LayoutPart>> {
+  if path.len() > 0 {
+    let popped = path.remove(0);
+    let child = p
+      .get_children_mut()
+      .ok_or(anyhow::Error::msg("invalid path (no children)"))?
+      .get_mut(popped)
+      .ok_or(anyhow::Error::msg("invalid path (no such child at index)"))?;
+    get_mut_component_at_path(child, path)
+  } else {
+    Ok(p)
+  }
+}
+
 pub fn build_tree_from_layout_part<'a>(
   p: &Box<dyn LayoutPart>,
   path: Vec<usize>,
+  current_path: &Vec<usize>,
 ) -> Vec<Element<'a, AppMessage>> {
   let mut name = p.get_name();
   for _ in 0..path.len() {
@@ -20,12 +41,20 @@ pub fn build_tree_from_layout_part<'a>(
   let final_name = name.clone();
 
   let mut r = Vec::new();
-  // why do i need to put text in the button? who god damn knows
+  let is_current = *current_path == path;
   r.push(
     button(text(final_name))
       .on_press(AppMessage::LayoutEditor(
         LayoutEditorMessage::OpenComponent(path.clone()),
       ))
+      .style(move |t: &Theme, _| button::Style {
+        background: match is_current {
+          true => Some(iced::Background::Color(t.palette().primary)),
+          false => None,
+        },
+        text_color: Color::WHITE,
+        ..Default::default()
+      })
       .width(Length::Fill)
       .into(),
   );
@@ -35,7 +64,7 @@ pub fn build_tree_from_layout_part<'a>(
       let mut new_path = path.clone();
       new_path.push(i);
 
-      r.append(&mut build_tree_from_layout_part(b, new_path));
+      r.append(&mut build_tree_from_layout_part(b, new_path, current_path));
     }
   }
 

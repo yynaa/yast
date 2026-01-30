@@ -43,12 +43,7 @@ impl Window for Timer {
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
     inject_values_in_lua(&context.lua_context.lua, context).unwrap();
 
-    let inner = context
-      .components
-      .get("Test Component")
-      .unwrap()
-      .build()
-      .unwrap();
+    let inner = context.layout.content.build().unwrap();
 
     ContextMenu::new(inner, || {
       column(vec![

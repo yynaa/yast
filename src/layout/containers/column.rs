@@ -37,11 +37,15 @@ impl LayoutPart for LayoutColumn {
   }
 
   fn get_author(&self) -> String {
-    "YAST".to_string()
+    "Built-in".to_string()
   }
 
   fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
     Some(&self.inner)
+  }
+
+  fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>> {
+    Some(&mut self.inner)
   }
 }
 
