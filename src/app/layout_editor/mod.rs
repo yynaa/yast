@@ -30,10 +30,19 @@ pub struct LayoutEditor {
 pub enum LayoutEditorMessage {
   LayoutNameChanged(String),
   LayoutAuthorChanged(String),
+
   OpenComponent(Vec<usize>),
+
   NewComponentComboBoxSelected(String),
   AddNewComponent(Vec<usize>, String),
+
   DeleteComponent(Vec<usize>),
+
+  MoveComponentUp(Vec<usize>),
+  MoveComponentDown(Vec<usize>),
+  EnterAboveComponent(Vec<usize>),
+  ExitParentComponent(Vec<usize>),
+
   ModifyParameterBoolean(Vec<usize>, String, bool),
 }
 
@@ -124,6 +133,83 @@ impl Window for LayoutEditor {
               context.layout.content = None;
               Task::none()
             }
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::MoveComponentUp(mut path) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let last_path_element = path.pop().unwrap();
+            if last_path_element > 0 {
+              let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+              let parent_children = parent.get_children_mut().unwrap();
+              let to_move = parent_children.remove(last_path_element);
+              parent_children.insert(last_path_element - 1, to_move);
+              self.opened_component = path.clone();
+              self.opened_component.push(last_path_element - 1);
+            }
+
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::MoveComponentDown(mut path) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let last_path_element = path.pop().unwrap();
+            let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+            let parent_children = parent.get_children_mut().unwrap();
+            if last_path_element < parent_children.len() - 1 {
+              let to_move = parent_children.remove(last_path_element);
+              parent_children.insert(last_path_element + 1, to_move);
+              self.opened_component = path.clone();
+              self.opened_component.push(last_path_element + 1);
+            }
+
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::EnterAboveComponent(mut path) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let last_path_element = path.pop().unwrap();
+            if last_path_element > 0 {
+              let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+              let parent_children = parent.get_children_mut().unwrap();
+              let to_move = parent_children.remove(last_path_element);
+              let new_parent = parent_children.get_mut(last_path_element - 1).unwrap();
+              let new_parent_children = new_parent.get_children_mut().unwrap();
+              new_parent_children.push(to_move);
+              self.opened_component = path.clone();
+              self.opened_component.push(last_path_element - 1);
+              self.opened_component.push(new_parent_children.len() - 1);
+            }
+
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ExitParentComponent(mut path) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            if path.len() > 1 {
+              let last_path_element = path.pop().unwrap();
+              let second_last_path_element = path.pop().unwrap();
+              let parent_parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+              let parent_parent_children = parent_parent.get_children_mut().unwrap();
+              let myself = parent_parent_children
+                .get_mut(second_last_path_element)
+                .unwrap()
+                .get_children_mut()
+                .unwrap()
+                .remove(last_path_element);
+              parent_parent_children.insert(second_last_path_element, myself.clone());
+              self.opened_component = path.clone();
+              self.opened_component.push(second_last_path_element);
+            }
+
+            Task::none()
           } else {
             unreachable!()
           }

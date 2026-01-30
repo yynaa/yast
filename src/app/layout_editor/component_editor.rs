@@ -1,7 +1,7 @@
 use anyhow::Result;
 use iced::{
   Alignment, Element, Length, Pixels,
-  widget::{button, checkbox, column, combo_box, row, text},
+  widget::{button, checkbox, column, combo_box, row, space, text},
 };
 
 use crate::{
@@ -58,9 +58,39 @@ pub fn component_editor<'a>(
     );
 
     if full_path.len() > 0 {
-      layout_part_attributes_row_vec.push(button("Move Up").into());
+      layout_part_attributes_row_vec.push(space().width(Length::Fixed(5.0)).into());
 
-      layout_part_attributes_row_vec.push(button("Move Down").into());
+      layout_part_attributes_row_vec.push(
+        button("Move Up")
+          .on_press(AppMessage::LayoutEditor(
+            LayoutEditorMessage::MoveComponentUp(full_path.clone()),
+          ))
+          .into(),
+      );
+      layout_part_attributes_row_vec.push(
+        button("Move Down")
+          .on_press(AppMessage::LayoutEditor(
+            LayoutEditorMessage::MoveComponentDown(full_path.clone()),
+          ))
+          .into(),
+      );
+
+      layout_part_attributes_row_vec.push(space().width(Length::Fixed(5.0)).into());
+
+      layout_part_attributes_row_vec.push(
+        button("Enter Above")
+          .on_press(AppMessage::LayoutEditor(
+            LayoutEditorMessage::EnterAboveComponent(full_path.clone()),
+          ))
+          .into(),
+      );
+      layout_part_attributes_row_vec.push(
+        button("Exit Parent")
+          .on_press(AppMessage::LayoutEditor(
+            LayoutEditorMessage::ExitParentComponent(full_path.clone()),
+          ))
+          .into(),
+      );
     }
 
     column_vec.push(row(layout_part_attributes_row_vec).padding(5.0).into());
@@ -75,6 +105,7 @@ pub fn component_editor<'a>(
             |f| AppMessage::LayoutEditor(LayoutEditorMessage::NewComponentComboBoxSelected(f)),
           )
           .into(),
+          space().width(Length::Fixed(5.0)).into(),
           button("Add Component")
             .on_press_maybe(state.new_component_combo_box_selected.as_ref().map(|f| {
               AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(
@@ -83,6 +114,8 @@ pub fn component_editor<'a>(
               ))
             }))
             .into(),
+          space().width(Length::Fixed(5.0)).into(),
+          button("Switch Component").into(),
         ])
         .padding(5.0)
         .into(),
