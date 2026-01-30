@@ -1,5 +1,3 @@
--- a test component
-
 return {
   ["name"] = "Timer",
   ["author"] = "Built-in",

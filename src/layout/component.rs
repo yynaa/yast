@@ -8,7 +8,11 @@ use anyhow::Result;
 use iced::Element;
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
+use crate::{
+  app::AppMessage,
+  layout::LayoutPart,
+  lua::{settings::LuaComponentSettings, widgets::LuaWidget},
+};
 
 #[derive(Clone)]
 pub struct Component {
@@ -16,14 +20,25 @@ pub struct Component {
   author: String,
   widget: LuaFunction,
 
+  parameters: LuaComponentSettings,
   children: Vec<Box<dyn LayoutPart>>,
 }
 
 impl LayoutPart for Component {
   fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
+    let env = self.widget.environment().unwrap();
+
+    env.set("settings", self.parameters.clone())?;
+
+    let children = env.get::<LuaTable>("children")?;
+    children.set("len", self.children.len())?;
+    env.set("children", children)?;
+
+    self.widget.set_environment(env)?;
+
     let e = self
       .widget
-      .call::<LuaWidget>(self.children.len())?
+      .call::<LuaWidget>(())?
       .build(&(Box::new(self.clone()) as Box<dyn LayoutPart + 'static>));
     Ok(e)
   }
@@ -43,6 +58,14 @@ impl LayoutPart for Component {
   fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>> {
     Some(&mut self.children)
   }
+
+  fn get_parameters(&self) -> &LuaComponentSettings {
+    &self.parameters
+  }
+
+  fn get_parameters_mut(&mut self) -> &mut LuaComponentSettings {
+    &mut self.parameters
+  }
 }
 
 impl Component {
@@ -54,6 +77,7 @@ impl Component {
       author: t.get("author")?,
       widget: t.get("widget")?,
 
+      parameters: t.get("settings")?,
       children: Vec::new(),
     };
 

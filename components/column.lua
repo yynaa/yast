@@ -3,9 +3,9 @@ return {
   ["author"] = "Built-in",
   ["settings"] = build_settings(),
   ["widget"] =
-    function(children_count)
+    function()
       local c = {}
-      for i = 1,children_count do
+      for i = 1,children.len do
         table.insert(c, children.get(i))
       end
 

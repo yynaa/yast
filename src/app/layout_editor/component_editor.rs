@@ -1,7 +1,7 @@
 use anyhow::Result;
 use iced::{
   Alignment, Element, Length, Pixels,
-  widget::{button, column, combo_box, row, text},
+  widget::{button, checkbox, column, combo_box, row, text},
 };
 
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
     layout_editor::{LayoutEditor, LayoutEditorMessage},
   },
   layout::LayoutPart,
+  lua::settings::LuaComponentSettingValue,
 };
 
 pub fn component_editor<'a>(
@@ -34,6 +35,13 @@ pub fn component_editor<'a>(
     column_vec.push(
       text(format!("Editing: {} - {}", p.get_name(), p.get_author()))
         .size(Pixels(20.))
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .into(),
+    );
+
+    column_vec.push(
+      text("-- Tree --")
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .into(),
@@ -69,13 +77,46 @@ pub fn component_editor<'a>(
           .into(),
           button("Add Component")
             .on_press_maybe(state.new_component_combo_box_selected.as_ref().map(|f| {
-              AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(full_path, f.clone()))
+              AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(
+                full_path.clone(),
+                f.clone(),
+              ))
             }))
             .into(),
         ])
         .padding(5.0)
         .into(),
       );
+    }
+
+    column_vec.push(
+      text("-- Parameters --")
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .into(),
+    );
+
+    for param in &p.get_parameters().values {
+      let name = param.name.clone();
+      match param.value {
+        LuaComponentSettingValue::Boolean { value, default: _ } => {
+          let moved_name = name.clone();
+          let moved_full_path = full_path.clone();
+
+          column_vec.push(
+            checkbox(value)
+              .label(name)
+              .on_toggle(move |new| {
+                AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterBoolean(
+                  moved_full_path.clone(),
+                  moved_name.clone(),
+                  new,
+                ))
+              })
+              .into(),
+          );
+        }
+      }
     }
 
     Ok(

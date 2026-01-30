@@ -13,6 +13,7 @@ use crate::{
     },
   },
   layout::component::Component,
+  lua::settings::{LuaComponentSetting, LuaComponentSettingValue},
 };
 
 mod component_editor;
@@ -33,6 +34,7 @@ pub enum LayoutEditorMessage {
   NewComponentComboBoxSelected(String),
   AddNewComponent(Vec<usize>, String),
   DeleteComponent(Vec<usize>),
+  ModifyParameterBoolean(Vec<usize>, String, bool),
 }
 
 impl LayoutEditor {
@@ -122,6 +124,26 @@ impl Window for LayoutEditor {
               context.layout.content = None;
               Task::none()
             }
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterBoolean(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            match to_edit.value {
+              LuaComponentSettingValue::Boolean { value: _, default } => {
+                to_edit.value = LuaComponentSettingValue::Boolean { value, default };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
           } else {
             unreachable!()
           }
