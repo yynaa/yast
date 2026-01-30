@@ -38,7 +38,7 @@ pub struct App {
 }
 
 pub struct AppContext {
-  components: HashMap<String, Component>,
+  components: HashMap<String, String>,
   lua_context: LuaAppContext,
 
   pub layout: Layout,

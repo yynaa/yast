@@ -1,12 +1,6 @@
-use std::{
-  cell::RefCell,
-  rc::Rc,
-  sync::{Arc, Mutex},
-};
-
 use iced::{
-  Element, Length, Task,
-  widget::{column, combo_box, row, text_input},
+  Alignment, Element, Length, Task,
+  widget::{button, column, combo_box, row, text, text_input},
   window,
 };
 
@@ -18,7 +12,7 @@ use crate::{
       tree::{build_tree_from_layout_part, get_mut_component_at_path},
     },
   },
-  layout::{LayoutPartIdentifier, containers::column::LayoutColumn},
+  layout::{LayoutPart, component::Component},
 };
 
 mod component_editor;
@@ -27,8 +21,8 @@ mod tree;
 pub struct LayoutEditor {
   pub opened_component: Vec<usize>,
 
-  pub new_component_combo_box_state: combo_box::State<LayoutPartIdentifier>,
-  pub new_component_combo_box_selected: Option<LayoutPartIdentifier>,
+  pub new_component_combo_box_state: combo_box::State<String>,
+  pub new_component_combo_box_selected: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -36,8 +30,8 @@ pub enum LayoutEditorMessage {
   LayoutNameChanged(String),
   LayoutAuthorChanged(String),
   OpenComponent(Vec<usize>),
-  NewComponentComboBoxSelected(LayoutPartIdentifier),
-  AddNewComponent(Vec<usize>, LayoutPartIdentifier),
+  NewComponentComboBoxSelected(String),
+  AddNewComponent(Vec<usize>, String),
   DeleteComponent(Vec<usize>),
 }
 
@@ -52,14 +46,12 @@ impl LayoutEditor {
   pub fn new(context: &AppContext) -> Self {
     let mut new_component_options = Vec::new();
 
-    new_component_options.push(LayoutPartIdentifier::Column);
-
     new_component_options.append(
       &mut context
         .components
         .keys()
-        .map(|s| LayoutPartIdentifier::Component(s.clone()))
-        .collect::<Vec<LayoutPartIdentifier>>(),
+        .map(|s| s.clone())
+        .collect::<Vec<String>>(),
     );
 
     Self {
@@ -95,25 +87,44 @@ impl Window for LayoutEditor {
           self.new_component_combo_box_selected = Some(n);
           Task::none()
         }
-        LayoutEditorMessage::AddNewComponent(path, id) => {
-          let parent = get_mut_component_at_path(&mut context.layout.content, path).unwrap();
-          let parent_children = parent.get_children_mut().unwrap();
-          match id {
-            LayoutPartIdentifier::Column => {
-              parent_children.push(Box::new(LayoutColumn::new(Vec::new())));
-            }
-            LayoutPartIdentifier::Component(name) => {
-              parent_children.push(Box::new(context.components.get(&name).unwrap().clone()));
-            }
-          };
-          Task::none()
+        LayoutEditorMessage::AddNewComponent(path, name) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let parent = get_mut_component_at_path(lcontent, path).unwrap();
+            let parent_children = parent.get_children_mut().unwrap();
+            parent_children.push(Box::new(
+              Component::from_str(
+                context.components.get(&name).unwrap().clone(),
+                &context.lua_context.lua,
+              )
+              .unwrap(),
+            ));
+            Task::none()
+          } else {
+            context.layout.content = Some(Box::new(
+              Component::from_str(
+                context.components.get(&name).unwrap().clone(),
+                &context.lua_context.lua,
+              )
+              .unwrap(),
+            ));
+            Task::none()
+          }
         }
         LayoutEditorMessage::DeleteComponent(mut path) => {
-          let last_path_element = path.pop().unwrap();
-          let parent = get_mut_component_at_path(&mut context.layout.content, path).unwrap();
-          parent.get_children_mut().unwrap().remove(last_path_element);
-          self.opened_component.pop();
-          Task::none()
+          if let Some(lcontent) = &mut context.layout.content {
+            if path.len() > 0 {
+              let last_path_element = path.pop().unwrap();
+              let parent = get_mut_component_at_path(lcontent, path).unwrap();
+              parent.get_children_mut().unwrap().remove(last_path_element);
+              self.opened_component.pop();
+              Task::none()
+            } else {
+              context.layout.content = None;
+              Task::none()
+            }
+          } else {
+            unreachable!()
+          }
         }
         _ => Task::none(),
       },
@@ -122,8 +133,9 @@ impl Window for LayoutEditor {
   }
 
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
-    column(vec![
-      // top layout info pane
+    let mut main_column_vec = Vec::new();
+
+    main_column_vec.push(
       row(vec![
         text_input("Layout Name", &context.layout.name)
           .on_input(|i| AppMessage::LayoutEditor(LayoutEditorMessage::LayoutNameChanged(i)))
@@ -134,27 +146,56 @@ impl Window for LayoutEditor {
       ])
       .padding(5.0)
       .into(),
-      // layout editor
-      row(vec![
-        column(build_tree_from_layout_part(
-          &context.layout.content,
-          vec![],
-          &self.opened_component,
-        ))
-        .width(Length::FillPortion(1))
+    );
+
+    if let Some(lcontent) = &context.layout.content {
+      main_column_vec.push(
+        row(vec![
+          column(build_tree_from_layout_part(
+            lcontent,
+            vec![],
+            &self.opened_component,
+          ))
+          .width(Length::FillPortion(1))
+          .padding(5.0)
+          .into(),
+          component_editor(
+            &self,
+            lcontent,
+            self.opened_component.clone(),
+            self.opened_component.clone(),
+          )
+          .unwrap(),
+        ])
+        .height(Length::Fill)
+        .into(),
+      );
+    } else {
+      main_column_vec.push(
+        column(vec![
+          text("You have no base component, please select one").into(),
+          row(vec![
+            combo_box(
+              &self.new_component_combo_box_state,
+              "Parts",
+              self.new_component_combo_box_selected.as_ref(),
+              |f| AppMessage::LayoutEditor(LayoutEditorMessage::NewComponentComboBoxSelected(f)),
+            )
+            .into(),
+            button("Add Part")
+              .on_press_maybe(self.new_component_combo_box_selected.as_ref().map(|f| {
+                AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(vec![], f.clone()))
+              }))
+              .into(),
+          ])
+          .into(),
+        ])
+        .height(Length::Fill)
         .padding(5.0)
         .into(),
-        component_editor(
-          &self,
-          &context.layout.content,
-          self.opened_component.clone(),
-          self.opened_component.clone(),
-        )
-        .unwrap(),
-      ])
-      .height(Length::Fill)
-      .into(),
-    ])
-    .into()
+      );
+    }
+
+    column(main_column_vec).height(Length::Fill).into()
   }
 }

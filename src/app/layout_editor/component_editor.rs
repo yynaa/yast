@@ -39,24 +39,17 @@ pub fn component_editor<'a>(
         .into(),
     );
 
-    column_vec.push(
-      text("-- Layout Part Attributes --")
-        .width(Length::Fill)
-        .align_x(Alignment::Center)
+    let mut layout_part_attributes_row_vec = Vec::new();
+
+    layout_part_attributes_row_vec.push(
+      button("Delete Component")
+        .on_press(AppMessage::LayoutEditor(
+          LayoutEditorMessage::DeleteComponent(full_path.clone()),
+        ))
         .into(),
     );
 
-    let mut layout_part_attributes_row_vec = Vec::new();
-
     if full_path.len() > 0 {
-      layout_part_attributes_row_vec.push(
-        button("Delete Part")
-          .on_press(AppMessage::LayoutEditor(
-            LayoutEditorMessage::DeleteComponent(full_path.clone()),
-          ))
-          .into(),
-      );
-
       layout_part_attributes_row_vec.push(button("Move Up").into());
 
       layout_part_attributes_row_vec.push(button("Move Down").into());
@@ -66,22 +59,15 @@ pub fn component_editor<'a>(
 
     if let Some(children) = children {
       column_vec.push(
-        text("-- Container Attributes --")
-          .width(Length::Fill)
-          .align_x(Alignment::Center)
-          .into(),
-      );
-
-      column_vec.push(
         row(vec![
           combo_box(
             &state.new_component_combo_box_state,
-            "Parts",
+            "Components",
             state.new_component_combo_box_selected.as_ref(),
             |f| AppMessage::LayoutEditor(LayoutEditorMessage::NewComponentComboBoxSelected(f)),
           )
           .into(),
-          button("Add Part")
+          button("Add Component")
             .on_press_maybe(state.new_component_combo_box_selected.as_ref().map(|f| {
               AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(full_path, f.clone()))
             }))

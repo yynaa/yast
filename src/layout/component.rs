@@ -10,16 +10,21 @@ use mlua::prelude::*;
 
 use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Component {
   name: String,
   author: String,
   widget: LuaFunction,
+
+  children: Vec<Box<dyn LayoutPart>>,
 }
 
 impl LayoutPart for Component {
   fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
-    let e = self.widget.call::<LuaWidget>(())?.build();
+    let e = self
+      .widget
+      .call::<LuaWidget>(self.children.len())?
+      .build(&(Box::new(self.clone()) as Box<dyn LayoutPart + 'static>));
     Ok(e)
   }
 
@@ -32,11 +37,11 @@ impl LayoutPart for Component {
   }
 
   fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
-    None
+    Some(&self.children)
   }
 
   fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>> {
-    None
+    Some(&mut self.children)
   }
 }
 
@@ -48,12 +53,14 @@ impl Component {
       name: t.get("name")?,
       author: t.get("author")?,
       widget: t.get("widget")?,
+
+      children: Vec::new(),
     };
 
     Ok(r)
   }
 
-  pub fn import_all_from_directory(p: &str, lua: &Lua) -> Result<HashMap<String, Self>> {
+  pub fn import_all_from_directory(p: &str, lua: &Lua) -> Result<HashMap<String, String>> {
     let path = Path::new(p);
     let mut components = HashMap::new();
     if path.is_dir() {
@@ -61,8 +68,11 @@ impl Component {
         let entry = file?.path();
         if entry.is_file() {
           let st = read_to_string(entry)?;
-          let comp = Self::from_str(st, lua)?;
-          components.insert(comp.name.clone(), comp);
+          let name = lua
+            .load(st.clone())
+            .eval::<LuaTable>()?
+            .get::<String>("name")?;
+          components.insert(name, st);
         }
       }
     }

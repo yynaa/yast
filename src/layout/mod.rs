@@ -1,15 +1,15 @@
 use std::fmt::Display;
 
 use anyhow::Result;
+use dyn_clone::DynClone;
 use iced::Element;
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, layout::containers::column::LayoutColumn};
+use crate::app::AppMessage;
 
 pub mod component;
-pub mod containers;
 
-pub trait LayoutPart {
+pub trait LayoutPart: DynClone {
   fn build<'a>(&self) -> Result<Element<'a, AppMessage>>;
 
   fn get_name(&self) -> String;
@@ -18,30 +18,13 @@ pub trait LayoutPart {
   fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>>;
 }
 
-#[derive(Debug, Clone)]
-pub enum LayoutPartIdentifier {
-  Component(String),
-  Column,
-}
-
-impl Display for LayoutPartIdentifier {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        LayoutPartIdentifier::Column => "Column",
-        LayoutPartIdentifier::Component(s) => s,
-      }
-    )
-  }
-}
+dyn_clone::clone_trait_object!(LayoutPart);
 
 // serializing this may involve something like https://github.com/dtolnay/typetag
 pub struct Layout {
   pub name: String,
   pub author: String,
-  pub content: Box<dyn LayoutPart>,
+  pub content: Option<Box<dyn LayoutPart>>,
 }
 
 impl Default for Layout {
@@ -49,7 +32,7 @@ impl Default for Layout {
     Self {
       name: String::from("untitled"),
       author: String::new(),
-      content: Box::new(LayoutColumn::new(Vec::new())),
+      content: None,
     }
   }
 }

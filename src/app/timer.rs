@@ -1,6 +1,6 @@
 use iced::{
   Element, Length, Task,
-  widget::{button, column},
+  widget::{button, column, space},
   window,
 };
 use iced_aw::ContextMenu;
@@ -43,7 +43,11 @@ impl Window for Timer {
   fn view(&self, context: &AppContext) -> Element<'_, AppMessage> {
     inject_values_in_lua(&context.lua_context.lua, context).unwrap();
 
-    let inner = context.layout.content.build().unwrap();
+    let inner = if let Some(lcontent) = &context.layout.content {
+      lcontent.build().unwrap()
+    } else {
+      space().width(Length::Fill).height(Length::Fill).into()
+    };
 
     ContextMenu::new(inner, || {
       column(vec![
