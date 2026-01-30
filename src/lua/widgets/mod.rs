@@ -6,17 +6,22 @@ use crate::{
   app::AppMessage,
   layout::LayoutPart,
   lua::widgets::{
+    column::{LuaWidgetColumn, init_lua_widget_column},
     internal::init_internals,
     text::{LuaWidgetText, init_lua_widget_text},
   },
 };
 
+pub mod column;
 pub mod internal;
 pub mod text;
 
 #[derive(Clone)]
 pub enum LuaWidget {
   InternalChild(usize),
+
+  Column(LuaWidgetColumn),
+
   Text(LuaWidgetText),
 }
 
@@ -45,6 +50,7 @@ impl LuaWidget {
 
         child.build().unwrap()
       }
+      LuaWidget::Column(inner) => inner.build(tree),
       LuaWidget::Text(inner) => inner.build(),
     }
   }
@@ -55,6 +61,7 @@ pub fn widgets(lua: &Lua) -> Result<()> {
 
   let widgets = lua.create_table()?;
   init_lua_widget_text(lua, &widgets)?;
+  init_lua_widget_column(lua, &widgets)?;
   lua.globals().set("widgets", widgets)?;
 
   Ok(())
