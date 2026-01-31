@@ -3,6 +3,10 @@ use std::{
   time::Duration,
 };
 
+use global_hotkey::{
+  GlobalHotKeyEvent, GlobalHotKeyManager,
+  hotkey::{Code, HotKey},
+};
 use iced::{Element, Subscription, Task, Theme, time::every, widget::space, window};
 use livesplit_core::{HotkeySystem, Run, Segment, SharedTimer, Timer as LSTimer};
 
@@ -33,6 +37,7 @@ pub enum WindowType {
 pub struct App {
   window_ids: BTreeMap<window::Id, WindowType>,
   windows: BTreeMap<WindowType, Box<dyn Window>>,
+  _hotkeys: GlobalHotKeyManager,
 
   context: AppContext,
 }
@@ -48,11 +53,12 @@ pub struct AppContext {
 
 #[derive(Clone, Debug)]
 pub enum AppMessage {
+  Update,
+
   WindowClosed(window::Id),
   OpenTimer(window::Id),
   RequestLayoutEditor,
   OpenLayoutEditor(window::Id),
-  UpdateView,
 
   Timer(TimerMessage),
   LayoutEditor(LayoutEditorMessage),
@@ -60,6 +66,11 @@ pub enum AppMessage {
 
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
+    let hotkeys = GlobalHotKeyManager::new().unwrap();
+
+    hotkeys.register(HotKey::new(None, Code::Numpad1)).unwrap();
+    hotkeys.register(HotKey::new(None, Code::Numpad3)).unwrap();
+
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
     let timer = LSTimer::new(run).unwrap();
@@ -70,6 +81,7 @@ impl App {
       Self {
         window_ids: BTreeMap::new(),
         windows: BTreeMap::new(),
+        _hotkeys: hotkeys,
 
         context: AppContext {
           components: Component::import_all_from_directory("components/", &lua_context.lua)
@@ -87,6 +99,21 @@ impl App {
 
   fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
     match message {
+      AppMessage::Update => {
+        if let Ok(event) = GlobalHotKeyEvent::receiver().try_recv() {
+          match event.id {
+            85 => {
+              self.context.timer.start();
+            }
+            87 => {
+              self.context.timer.reset(true);
+            }
+            _ => {}
+          }
+        }
+
+        Task::none()
+      }
       AppMessage::WindowClosed(id) => {
         if let Some(typ) = self.window_ids.remove(&id) {
           self.windows.remove(&typ);
@@ -152,7 +179,7 @@ impl App {
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
       window::close_events().map(AppMessage::WindowClosed),
-      every(Duration::from_secs_f64(1.0 / 30.0)).map(|_| AppMessage::UpdateView),
+      every(Duration::from_secs_f64(1.0 / 30.0)).map(|_| AppMessage::Update),
     ])
   }
 }

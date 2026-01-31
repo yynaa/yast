@@ -1,5 +1,4 @@
 use anyhow::Result;
-use livesplit_core::TimerPhase;
 use mlua::prelude::*;
 
 use crate::app::AppContext;
@@ -23,8 +22,14 @@ pub fn inject_values_in_lua(lua: &Lua, context: &AppContext) -> Result<()> {
   snapshot_table.set("current_timing_method", current_timing_method)?;
 
   let current_time_table = lua.create_table()?;
-  current_time_table.set("real_time", current_time.real_time.unwrap().total_seconds())?;
-  current_time_table.set("game_time", current_time.game_time.unwrap().total_seconds())?;
+  current_time_table.set(
+    "real_time",
+    current_time.real_time.map(|f| f.total_seconds()),
+  )?;
+  current_time_table.set(
+    "game_time",
+    current_time.game_time.map(|f| f.total_seconds()),
+  )?;
   snapshot_table.set("current_time", current_time_table)?;
 
   lua.globals().set("snapshot", snapshot_table)?;
