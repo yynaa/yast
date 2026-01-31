@@ -4,7 +4,7 @@ use std::{
 };
 
 use iced::{Element, Subscription, Task, Theme, time::every, widget::space, window};
-use livesplit_core::{Run, Segment, Timer as LSTimer};
+use livesplit_core::{HotkeySystem, Run, Segment, SharedTimer, Timer as LSTimer};
 
 use crate::{
   app::{
@@ -62,8 +62,7 @@ impl App {
   fn new() -> (Self, Task<AppMessage>) {
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
-    let mut timer = LSTimer::new(run).unwrap();
-    timer.start();
+    let timer = LSTimer::new(run).unwrap();
 
     let lua_context = LuaAppContext::init().expect("couldn't initialize lua context");
 
@@ -78,6 +77,7 @@ impl App {
           lua_context,
 
           layout: Layout::default(),
+
           timer,
         },
       },
