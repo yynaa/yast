@@ -1,7 +1,14 @@
 return {
   ["name"] = "Debug",
   ["author"] = "Built-in",
-  ["settings"] = build_settings(),
+  ["settings"] = build_settings()
+      :boolean("show_details", false)
+      :string("prefix", "Debug")
+      :options("view_mode", "Simple", {"Simple", "Detailed", "Compact"})
+      :number("decimal_places", 2)
+      :number_range("font_size", 12, 8, 32, 1)
+      :color("text_color", 1.0, 1.0, 1.0, 1.0)
+      :image("icon"),
   ["widget"] =
     function()
       local debugs = {}
@@ -13,7 +20,7 @@ return {
       table.insert(debugs, widgets.text("current_time.real_time = " .. tostring(snapshot.current_time.real_time)):into())
       table.insert(debugs, widgets.text("current_time.game_time = " .. tostring(snapshot.current_time.game_time)):into())
       table.insert(debugs, widgets.text("run.game_name = " .. tostring(run.game_name)):into())
-      table.insert(debugs, widgets.text("run.game_icon = " .. tostring(#run.game_icon) .. " bytes"):into())
+      table.insert(debugs, widgets.text("run.game_icon = " .. tostring(run.game_icon and #run.game_icon or 0) .. " bytes"):into())
       table.insert(debugs, widgets.text("run.category_name = " .. tostring(run.category_name)):into())
       table.insert(debugs, widgets.text("run.attempt_count = " .. tostring(run.attempt_count)):into())
       table.insert(debugs, widgets.text("run.metadata.run_id = " .. tostring(run.metadata.run_id)):into())
@@ -22,7 +29,7 @@ return {
       table.insert(debugs, widgets.text("run.metadata.region_name = " .. tostring(run.metadata.region_name)):into())
       for i, seg in ipairs(run.segments) do
         table.insert(debugs, widgets.text("run.segments[" .. i .. "].name = " .. tostring(seg.name)):into())
-        table.insert(debugs, widgets.text("run.segments[" .. i .. "].icon = " .. tostring(#seg.icon) .. " bytes"):into())
+        table.insert(debugs, widgets.text("run.segments[" .. i .. "].icon = " .. tostring(seg.icon and #seg.icon or 0) .. " bytes"):into())
         for comp_name, comp_time in pairs(seg.comparisons) do
           table.insert(debugs, widgets.text("  run.segments[" .. i .. "].comparisons." .. comp_name .. ".real_time = " .. tostring(comp_time.real_time)):into())
           table.insert(debugs, widgets.text("  run.segments[" .. i .. "].comparisons." .. comp_name .. ".game_time = " .. tostring(comp_time.game_time)):into())

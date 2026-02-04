@@ -1,11 +1,11 @@
 use anyhow::Result;
 use iced::{
-  Color, Element, Length, Theme,
   widget::{button, text},
+  Color, Element, Length, Theme,
 };
 
 use crate::{
-  app::{AppMessage, layout_editor::LayoutEditorMessage},
+  app::{layout_editor::LayoutEditorMessage, AppMessage},
   layout::LayoutPart,
 };
 

@@ -1,6 +1,6 @@
 use iced::{
-  Element, Length, Task,
-  widget::{button, column, space},
+  Background, Element, Length, Task, Theme,
+  widget::{button, column, space, stack},
   window,
 };
 use iced_aw::ContextMenu;
@@ -18,6 +18,7 @@ pub enum TimerMessage {}
 impl Timer {
   pub fn open_window() -> Task<window::Id> {
     window::open(window::Settings {
+      // decorations: false,
       ..Default::default()
     })
     .1
@@ -48,17 +49,55 @@ impl Window for Timer {
       space().width(Length::Fill).height(Length::Fill).into()
     };
 
-    ContextMenu::new(inner, || {
+    let styler = |t: &Theme, _: button::Status| button::Style {
+      background: Some(Background::Color(t.palette().primary)),
+      text_color: t.palette().text,
+      ..Default::default()
+    };
+
+    let context = ContextMenu::new(inner, move || {
       column(vec![
-        button("splits editor").width(Length::Fill).into(),
-        button("layout editor")
+        button("load splits")
+          .width(Length::Fill)
+          .style(styler)
+          .into(),
+        button("save splits")
+          .width(Length::Fill)
+          .style(styler)
+          .into(),
+        space().width(Length::Fixed(10.0)).into(),
+        button("load layout")
+          .width(Length::Fill)
+          .style(styler)
+          .into(),
+        button("save layout")
+          .width(Length::Fill)
+          .style(styler)
+          .into(),
+        button("layout editor (beta)")
           .width(Length::Fill)
           .on_press(AppMessage::RequestLayoutEditor)
+          .style(styler)
           .into(),
+        space().width(Length::Fixed(10.0)).into(),
+        button("exit").width(Length::Fill).style(styler).into(),
       ])
       .width(Length::Fixed(200.))
+      .spacing(2.0)
       .into()
     })
+    .into();
+
+    stack(vec![
+      // button(space())
+      //   .on_press(AppMessage::DragTimer)
+      //   .width(Length::Fill)
+      //   .height(Length::Fill)
+      //   .into(),
+      context,
+    ])
+    .width(Length::Fill)
+    .height(Length::Fill)
     .into()
   }
 }

@@ -8,7 +8,7 @@ use global_hotkey::{
   hotkey::{Code, HotKey},
 };
 use iced::{Element, Subscription, Task, Theme, time::every, widget::space, window};
-use livesplit_core::{HotkeySystem, Run, Segment, SharedTimer, Timer as LSTimer};
+use livesplit_core::{Run, Segment, Timer as LSTimer};
 
 use crate::{
   app::{
@@ -56,6 +56,7 @@ pub enum AppMessage {
   Update,
 
   WindowClosed(window::Id),
+  DragTimer,
   OpenTimer(window::Id),
   RequestLayoutEditor,
   OpenLayoutEditor(window::Id),
@@ -125,6 +126,14 @@ impl App {
           Task::none()
         }
       }
+      AppMessage::DragTimer => window::drag(
+        *self
+          .window_ids
+          .iter()
+          .find(|v| *v.1 == WindowType::Timer)
+          .unwrap()
+          .0,
+      ),
       AppMessage::OpenTimer(id) => {
         let timer = Timer::new();
         self.window_ids.insert(id, WindowType::Timer);

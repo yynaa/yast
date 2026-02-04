@@ -24,6 +24,9 @@ pub struct Layout {
   pub name: String,
   pub author: String,
   pub content: Option<Box<dyn LayoutPart>>,
+
+  pub width: f32,
+  pub height: f32,
 }
 
 impl Default for Layout {
@@ -32,6 +35,9 @@ impl Default for Layout {
       name: String::from("untitled"),
       author: String::new(),
       content: None,
+
+      width: 200.,
+      height: 500.,
     }
   }
 }

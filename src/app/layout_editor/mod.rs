@@ -1,5 +1,8 @@
+use std::{collections::HashMap, fs};
+
 use iced::{
-  Element, Length, Task,
+  Color, Element, Length, Task,
+  advanced::image,
   widget::{button, column, combo_box, row, text, text_input},
   window,
 };
@@ -13,7 +16,7 @@ use crate::{
     },
   },
   layout::component::Component,
-  lua::settings::{LuaComponentSetting, LuaComponentSettingValue},
+  lua::settings::LuaComponentSettingValue,
 };
 
 mod component_editor;
@@ -24,6 +27,10 @@ pub struct LayoutEditor {
 
   pub new_component_combo_box_state: combo_box::State<String>,
   pub new_component_combo_box_selected: Option<String>,
+
+  pub parameter_options_combo_box_states: HashMap<String, combo_box::State<String>>,
+  pub parameter_options_color_picker_opened: HashMap<String, bool>,
+  pub parameter_options_image_handles: HashMap<String, image::Handle>,
 }
 
 #[derive(Clone, Debug)]
@@ -44,6 +51,15 @@ pub enum LayoutEditorMessage {
   ExitParentComponent(Vec<usize>),
 
   ModifyParameterBoolean(Vec<usize>, String, bool),
+  ModifyParameterString(Vec<usize>, String, String),
+  ModifyParameterOptions(Vec<usize>, String, String),
+  ModifyParameterNumber(Vec<usize>, String, String),
+  ModifyParameterNumberRange(Vec<usize>, String, f64),
+  ModifyParameterColorOpen(String),
+  ModifyParameterColorCancel(String),
+  ModifyParameterColorSubmit(Vec<usize>, String, Color),
+  ModifyParameterImageOpen(Vec<usize>, String),
+  ModifyParameterImageSubmit(Vec<usize>, String, Vec<u8>),
 }
 
 impl LayoutEditor {
@@ -69,6 +85,9 @@ impl LayoutEditor {
       opened_component: Vec::new(),
       new_component_combo_box_state: combo_box::State::new(new_component_options),
       new_component_combo_box_selected: None,
+      parameter_options_combo_box_states: HashMap::new(),
+      parameter_options_color_picker_opened: HashMap::new(),
+      parameter_options_image_handles: HashMap::new(),
     }
   }
 }
@@ -90,8 +109,44 @@ impl Window for LayoutEditor {
           Task::none()
         }
         LayoutEditorMessage::OpenComponent(n) => {
-          self.opened_component = n;
-          self.new_component_combo_box_selected = None;
+          if let Some(lcontent) = &mut context.layout.content {
+            self.opened_component = n.clone();
+            self.new_component_combo_box_selected = None;
+            self.parameter_options_combo_box_states.clear();
+            self.parameter_options_color_picker_opened.clear();
+
+            let comp = get_mut_component_at_path(lcontent, n).unwrap();
+            for p in &comp.get_parameters().values {
+              match &p.value {
+                LuaComponentSettingValue::Options {
+                  value: _,
+                  default: _,
+                  options,
+                } => {
+                  self
+                    .parameter_options_combo_box_states
+                    .insert(p.name.clone(), combo_box::State::new(options.clone()));
+                }
+                LuaComponentSettingValue::Color {
+                  value: _,
+                  default: _,
+                } => {
+                  self
+                    .parameter_options_color_picker_opened
+                    .insert(p.name.clone(), false);
+                }
+                LuaComponentSettingValue::Image { bytes } => {
+                  if let Some(b) = bytes {
+                    self
+                      .parameter_options_image_handles
+                      .insert(p.name.clone(), image::Handle::from_bytes(b.clone()));
+                  }
+                }
+                _ => {}
+              }
+            }
+          }
+
           Task::none()
         }
         LayoutEditorMessage::NewComponentComboBoxSelected(n) => {
@@ -118,7 +173,9 @@ impl Window for LayoutEditor {
               )
               .unwrap(),
             ));
-            Task::none()
+            Task::done(AppMessage::LayoutEditor(
+              LayoutEditorMessage::OpenComponent(vec![]),
+            ))
           }
         }
         LayoutEditorMessage::DeleteComponent(mut path) => {
@@ -223,9 +280,201 @@ impl Window for LayoutEditor {
               .iter_mut()
               .find(|v| v.name == param)
               .unwrap();
-            match to_edit.value {
+            match &to_edit.value {
               LuaComponentSettingValue::Boolean { value: _, default } => {
-                to_edit.value = LuaComponentSettingValue::Boolean { value, default };
+                to_edit.value = LuaComponentSettingValue::Boolean {
+                  value,
+                  default: *default,
+                };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterString(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            match &to_edit.value {
+              LuaComponentSettingValue::String { value: _, default } => {
+                to_edit.value = LuaComponentSettingValue::String {
+                  value,
+                  default: default.clone(),
+                };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterOptions(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            match &to_edit.value {
+              LuaComponentSettingValue::Options {
+                value: _,
+                default,
+                options: _,
+              } => {
+                to_edit.value = LuaComponentSettingValue::Options {
+                  value,
+                  default: default.clone(),
+                  options: match &to_edit.value {
+                    LuaComponentSettingValue::Options { options, .. } => options.clone(),
+                    _ => panic!("invalid value"),
+                  },
+                };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterNumber(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            if let Ok(value_f64) = value.parse::<f64>() {
+              let component = get_mut_component_at_path(lcontent, path).unwrap();
+              let parameters = component.get_parameters_mut();
+              let to_edit = parameters
+                .values
+                .iter_mut()
+                .find(|v| v.name == param)
+                .unwrap();
+              match &to_edit.value {
+                LuaComponentSettingValue::Number { value: _, default } => {
+                  to_edit.value = LuaComponentSettingValue::Number {
+                    value: value_f64,
+                    default: *default,
+                  };
+                }
+                _ => panic!("invalid value"),
+              };
+            }
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterNumberRange(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            match &to_edit.value {
+              LuaComponentSettingValue::NumberRange {
+                value: _,
+                default,
+                min,
+                max,
+                step,
+              } => {
+                to_edit.value = LuaComponentSettingValue::NumberRange {
+                  value,
+                  default: *default,
+                  min: *min,
+                  max: *max,
+                  step: *step,
+                };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterColorOpen(param) => {
+          self
+            .parameter_options_color_picker_opened
+            .insert(param, true);
+          Task::none()
+        }
+        LayoutEditorMessage::ModifyParameterColorSubmit(path, param, value) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            self
+              .parameter_options_color_picker_opened
+              .insert(param.clone(), false);
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            match &to_edit.value {
+              LuaComponentSettingValue::Color { value: _, default } => {
+                to_edit.value = LuaComponentSettingValue::Color {
+                  value: [value.r, value.g, value.b, value.a],
+                  default: *default,
+                };
+              }
+              _ => panic!("invalid value"),
+            };
+            Task::none()
+          } else {
+            unreachable!()
+          }
+        }
+        LayoutEditorMessage::ModifyParameterColorCancel(param) => {
+          self
+            .parameter_options_color_picker_opened
+            .insert(param, false);
+          Task::none()
+        }
+        LayoutEditorMessage::ModifyParameterImageOpen(path, param) => Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("Image Formats", &["png", "jpg", "jpeg"])
+            .pick_file(),
+        )
+        .then(move |handle| match handle {
+          Some(file_handle) => {
+            let file_path = file_handle.path();
+            match fs::read(file_path) {
+              Ok(bytes) => Task::done(AppMessage::LayoutEditor(
+                LayoutEditorMessage::ModifyParameterImageSubmit(path.clone(), param.clone(), bytes),
+              )),
+              Err(_) => Task::none(),
+            }
+          }
+          None => Task::none(),
+        }),
+        LayoutEditorMessage::ModifyParameterImageSubmit(path, param, bytes) => {
+          if let Some(lcontent) = &mut context.layout.content {
+            let component = get_mut_component_at_path(lcontent, path).unwrap();
+            let parameters = component.get_parameters_mut();
+            let to_edit = parameters
+              .values
+              .iter_mut()
+              .find(|v| v.name == param)
+              .unwrap();
+            self
+              .parameter_options_image_handles
+              .insert(param, image::Handle::from_bytes(bytes.clone()));
+            match &to_edit.value {
+              LuaComponentSettingValue::Image { bytes: _ } => {
+                to_edit.value = LuaComponentSettingValue::Image { bytes: Some(bytes) };
               }
               _ => panic!("invalid value"),
             };
