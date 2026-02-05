@@ -1,12 +1,13 @@
 --- @class settings
 --- @field get fun(self: settings, param_name: string): any
---- @field boolean fun(self: settings, param_name: string, default: boolean)
---- @field string fun(self: settings, param_name: string, default: string)
---- @field options fun(self: settings, param_name: string, default: string, options: string[])
---- @field number fun(self: settings, param_name: string, default: number)
---- @field number_range fun(self: settings, param_name: string, default: number, min: number, max: number, step: number)
---- @field color fun(self: settings, param_name: string, default_r: number, default_g: number, default_b: number, default_a: number)
---- @field image fun(self: settings, param_name: string)
+--- @field plugin fun(self: settings, plugin: fun(s: settings): settings): settings
+--- @field boolean fun(self: settings, param_name: string, default: boolean): settings
+--- @field string fun(self: settings, param_name: string, default: string): settings
+--- @field options fun(self: settings, param_name: string, default: string, options: string[]): settings
+--- @field number fun(self: settings, param_name: string, default: number): settings
+--- @field number_range fun(self: settings, param_name: string, default: number, min: number, max: number, step: number): settings
+--- @field color fun(self: settings, param_name: string, default_r: number, default_g: number, default_b: number, default_a: number): settings
+--- @field image fun(self: settings, param_name: string): settings
 settings = {}
 
 --- @return settings
@@ -134,6 +135,14 @@ function widgets.container(child) end
 --- @param children widget[]
 --- @return widget_stack
 function widgets.stack(children) end
+
+--- @class widget_space
+--- @field into fun(self: widget_space): widget
+--- @field width fun(self: widget_space, type: "fill"|"fill_portion"|"shrink"|"fixed", unit: number|nil): widget_space
+--- @field height fun(self: widget_space, type: "fill"|"fill_portion"|"shrink"|"fixed", unit: number|nil): widget_space
+
+--- @return widget_space
+function widgets.space() end
 
 --- @class children
 --- @field len number

@@ -1,4 +1,4 @@
-use iced::{Element, Length, Padding, Pixels, alignment::Horizontal, widget::column};
+use iced::{alignment::Horizontal, widget::column, Element, Length, Padding, Pixels};
 use mlua::prelude::*;
 
 use crate::{app::AppMessage, layout::component::Component, lua::widgets::LuaWidget};

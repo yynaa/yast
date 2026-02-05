@@ -127,6 +127,11 @@ impl LuaUserData for LuaComponentSettings {
       },
     );
 
+    methods.add_method("plugin", |_, settings, t: LuaFunction| {
+      let new = t.call::<LuaComponentSettings>(settings.clone())?;
+      Ok(new)
+    });
+
     methods.add_method("boolean", |_, settings, (name, default): (String, bool)| {
       let mut settings = settings.clone();
       settings.values.push(LuaComponentSetting {

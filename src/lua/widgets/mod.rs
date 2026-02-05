@@ -6,13 +6,14 @@ use crate::{
   app::AppMessage,
   layout::component::Component,
   lua::widgets::{
-    column::{LuaWidgetColumn, init_lua_widget_column},
-    container::{LuaWidgetContainer, init_lua_widget_container},
-    image::{LuaWidgetImage, init_lua_widget_image},
+    column::{init_lua_widget_column, LuaWidgetColumn},
+    container::{init_lua_widget_container, LuaWidgetContainer},
+    image::{init_lua_widget_image, LuaWidgetImage},
     internal::init_internals,
-    row::{LuaWidgetRow, init_lua_widget_row},
-    stack::{LuaWidgetStack, init_lua_widget_stack},
-    text::{LuaWidgetText, init_lua_widget_text},
+    row::{init_lua_widget_row, LuaWidgetRow},
+    space::{init_lua_widget_space, LuaWidgetSpace},
+    stack::{init_lua_widget_stack, LuaWidgetStack},
+    text::{init_lua_widget_text, LuaWidgetText},
   },
 };
 
@@ -21,6 +22,7 @@ pub mod container;
 pub mod image;
 pub mod internal;
 pub mod row;
+pub mod space;
 pub mod stack;
 pub mod text;
 
@@ -39,6 +41,8 @@ pub enum LuaWidget {
   Image(LuaWidgetImage),
 
   Text(LuaWidgetText),
+
+  Space(LuaWidgetSpace),
 }
 
 impl FromLua for LuaWidget {
@@ -72,6 +76,7 @@ impl LuaWidget {
       LuaWidget::Container(inner) => inner.build(tree),
       LuaWidget::Image(inner) => inner.build(),
       LuaWidget::Text(inner) => inner.build(),
+      LuaWidget::Space(inner) => inner.build(),
     }
   }
 }
@@ -86,6 +91,7 @@ pub fn widgets(lua: &Lua) -> Result<()> {
   init_lua_widget_stack(lua, &widgets)?;
   init_lua_widget_container(lua, &widgets)?;
   init_lua_widget_image(lua, &widgets)?;
+  init_lua_widget_space(lua, &widgets)?;
   lua.globals().set("widgets", widgets)?;
 
   Ok(())

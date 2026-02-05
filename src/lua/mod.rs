@@ -20,7 +20,7 @@ impl LuaAppContext {
       .to_string_lossy()
       .to_string();
     current_path.push_str(&format!(
-      ";{0}/components/?.lua;{0}/components/?/init.lua;{0}/lib/?.lua",
+      ";{0}/yast/components/?.lua;{0}/yast/components/?/init.lua;{0}/yast/lib/?.lua;{0}/yast/lib/?/init.lua",
       data_dir
     ));
     package.set("path", format!("{0}", current_path))?;

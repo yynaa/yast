@@ -243,7 +243,7 @@ pub fn component_editor<'a>(
               .step(*step)
               .into(),
               space().width(Length::Fixed(5.0)).into(),
-              text(format!("{}", value)).into(),
+              text(format!("{}", value)).width(Length::Fixed(50.0)).into(),
             ])
             .align_y(Vertical::Center)
             .into(),

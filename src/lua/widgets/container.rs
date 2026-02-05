@@ -1,7 +1,7 @@
 use iced::{
-  Color, Element, Length, Padding,
   alignment::{Horizontal, Vertical},
   widget::container,
+  Color, Element, Length, Padding,
 };
 use mlua::prelude::*;
 
