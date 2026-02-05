@@ -148,22 +148,22 @@ impl Window for LayoutEditor {
           if let Some(lcontent) = &mut context.layout.content {
             let parent = get_mut_component_at_path(lcontent, path).unwrap();
             let parent_children = parent.get_children_mut().unwrap();
-            parent_children.push(Box::new(
+            parent_children.push(
               Component::from_str(
                 context.components.get(&name).unwrap().clone(),
                 &context.lua_context.lua,
               )
               .unwrap(),
-            ));
+            );
             Task::none()
           } else {
-            context.layout.content = Some(Box::new(
+            context.layout.content = Some(
               Component::from_str(
                 context.components.get(&name).unwrap().clone(),
                 &context.lua_context.lua,
               )
               .unwrap(),
-            ));
+            );
             Task::done(AppMessage::LayoutEditor(
               LayoutEditorMessage::OpenComponent(vec![]),
             ))

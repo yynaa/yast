@@ -1,7 +1,7 @@
-use iced::{widget::stack, Element, Length};
+use iced::{Element, Length, widget::stack};
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
+use crate::{app::AppMessage, layout::component::Component, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
 pub struct LuaWidgetStack {
@@ -21,7 +21,7 @@ impl LuaWidgetStack {
     }
   }
 
-  pub fn build<'a>(self, tree: &Box<dyn LayoutPart>) -> Element<'a, AppMessage> {
+  pub fn build<'a>(self, tree: &Component) -> Element<'a, AppMessage> {
     let inner_built = self
       .inner
       .iter()

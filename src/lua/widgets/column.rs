@@ -1,7 +1,7 @@
-use iced::{alignment::Horizontal, widget::column, Element, Length, Padding, Pixels};
+use iced::{Element, Length, Padding, Pixels, alignment::Horizontal, widget::column};
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, layout::LayoutPart, lua::widgets::LuaWidget};
+use crate::{app::AppMessage, layout::component::Component, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
 pub struct LuaWidgetColumn {
@@ -27,7 +27,7 @@ impl LuaWidgetColumn {
     }
   }
 
-  pub fn build<'a>(self, tree: &Box<dyn LayoutPart>) -> Element<'a, AppMessage> {
+  pub fn build<'a>(self, tree: &Component) -> Element<'a, AppMessage> {
     let inner_built = self
       .inner
       .iter()

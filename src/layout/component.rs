@@ -10,7 +10,6 @@ use mlua::prelude::*;
 
 use crate::{
   app::AppMessage,
-  layout::LayoutPart,
   lua::{settings::LuaComponentSettings, widgets::LuaWidget},
 };
 
@@ -21,51 +20,7 @@ pub struct Component {
   widget: LuaFunction,
 
   parameters: LuaComponentSettings,
-  children: Vec<Box<dyn LayoutPart>>,
-}
-
-impl LayoutPart for Component {
-  fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
-    let env = self.widget.environment().unwrap();
-
-    env.set("settings", self.parameters.clone())?;
-
-    let children = env.get::<LuaTable>("children")?;
-    children.set("len", self.children.len())?;
-    env.set("children", children)?;
-
-    self.widget.set_environment(env)?;
-
-    let e = self
-      .widget
-      .call::<LuaWidget>(())?
-      .build(&(Box::new(self.clone()) as Box<dyn LayoutPart + 'static>));
-    Ok(e)
-  }
-
-  fn get_name(&self) -> String {
-    self.name.clone()
-  }
-
-  fn get_author(&self) -> String {
-    self.author.clone()
-  }
-
-  fn get_children(&self) -> Option<&Vec<Box<dyn LayoutPart>>> {
-    Some(&self.children)
-  }
-
-  fn get_children_mut(&mut self) -> Option<&mut Vec<Box<dyn LayoutPart>>> {
-    Some(&mut self.children)
-  }
-
-  fn get_parameters(&self) -> &LuaComponentSettings {
-    &self.parameters
-  }
-
-  fn get_parameters_mut(&mut self) -> &mut LuaComponentSettings {
-    &mut self.parameters
-  }
+  children: Vec<Component>,
 }
 
 impl Component {
@@ -101,5 +56,44 @@ impl Component {
       }
     }
     Ok(components)
+  }
+
+  pub fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
+    let env = self.widget.environment().unwrap();
+
+    env.set("settings", self.parameters.clone())?;
+
+    let children = env.get::<LuaTable>("children")?;
+    children.set("len", self.children.len())?;
+    env.set("children", children)?;
+
+    self.widget.set_environment(env)?;
+
+    let e = self.widget.call::<LuaWidget>(())?.build(&self);
+    Ok(e)
+  }
+
+  pub fn get_name(&self) -> String {
+    self.name.clone()
+  }
+
+  pub fn get_author(&self) -> String {
+    self.author.clone()
+  }
+
+  pub fn get_children(&self) -> Option<&Vec<Component>> {
+    Some(&self.children)
+  }
+
+  pub fn get_children_mut(&mut self) -> Option<&mut Vec<Component>> {
+    Some(&mut self.children)
+  }
+
+  pub fn get_parameters(&self) -> &LuaComponentSettings {
+    &self.parameters
+  }
+
+  pub fn get_parameters_mut(&mut self) -> &mut LuaComponentSettings {
+    &mut self.parameters
   }
 }

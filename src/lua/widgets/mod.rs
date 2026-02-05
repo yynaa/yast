@@ -4,15 +4,15 @@ use mlua::prelude::*;
 
 use crate::{
   app::AppMessage,
-  layout::LayoutPart,
+  layout::component::Component,
   lua::widgets::{
-    column::{init_lua_widget_column, LuaWidgetColumn},
-    container::{init_lua_widget_container, LuaWidgetContainer},
-    image::{init_lua_widget_image, LuaWidgetImage},
+    column::{LuaWidgetColumn, init_lua_widget_column},
+    container::{LuaWidgetContainer, init_lua_widget_container},
+    image::{LuaWidgetImage, init_lua_widget_image},
     internal::init_internals,
-    row::{init_lua_widget_row, LuaWidgetRow},
-    stack::{init_lua_widget_stack, LuaWidgetStack},
-    text::{init_lua_widget_text, LuaWidgetText},
+    row::{LuaWidgetRow, init_lua_widget_row},
+    stack::{LuaWidgetStack, init_lua_widget_stack},
+    text::{LuaWidgetText, init_lua_widget_text},
   },
 };
 
@@ -53,7 +53,7 @@ impl FromLua for LuaWidget {
 impl LuaUserData for LuaWidget {}
 
 impl LuaWidget {
-  pub fn build<'a>(self, tree: &Box<dyn LayoutPart>) -> Element<'a, AppMessage> {
+  pub fn build<'a>(self, tree: &Component) -> Element<'a, AppMessage> {
     match self {
       LuaWidget::InternalChild(index) => {
         let child = tree

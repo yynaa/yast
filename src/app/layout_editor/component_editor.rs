@@ -11,13 +11,13 @@ use crate::{
     AppMessage,
     layout_editor::{LayoutEditor, LayoutEditorMessage},
   },
-  layout::LayoutPart,
+  layout::component::Component,
   lua::settings::LuaComponentSettingValue,
 };
 
 pub fn component_editor<'a>(
   state: &'a LayoutEditor,
-  p: &Box<dyn LayoutPart>,
+  p: &Component,
   full_path: Vec<usize>,
   mut path: Vec<usize>,
 ) -> Result<Element<'a, AppMessage>> {

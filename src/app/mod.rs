@@ -163,7 +163,6 @@ impl App {
           Task::none()
         }
       }
-      _ => Task::none(),
     }
   }
 

@@ -1,18 +1,18 @@
 use anyhow::Result;
 use iced::{
-  widget::{button, text},
   Color, Element, Length, Theme,
+  widget::{button, text},
 };
 
 use crate::{
-  app::{layout_editor::LayoutEditorMessage, AppMessage},
-  layout::LayoutPart,
+  app::{AppMessage, layout_editor::LayoutEditorMessage},
+  layout::component::Component,
 };
 
 pub fn get_mut_component_at_path(
-  p: &mut Box<dyn LayoutPart>,
+  p: &mut Component,
   mut path: Vec<usize>,
-) -> Result<&mut Box<dyn LayoutPart>> {
+) -> Result<&mut Component> {
   if path.len() > 0 {
     let popped = path.remove(0);
     let child = p
@@ -27,7 +27,7 @@ pub fn get_mut_component_at_path(
 }
 
 pub fn build_tree_from_layout_part<'a>(
-  p: &Box<dyn LayoutPart>,
+  p: &Component,
   path: Vec<usize>,
   current_path: &Vec<usize>,
 ) -> Vec<Element<'a, AppMessage>> {

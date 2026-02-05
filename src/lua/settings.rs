@@ -1,5 +1,4 @@
 use anyhow::Result;
-use iced::widget::image;
 use mlua::prelude::*;
 
 use crate::lua::widgets::image::ImageHandleLua;
