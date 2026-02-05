@@ -79,8 +79,14 @@ impl App {
     let timer = LSTimer::new(run).unwrap();
 
     let lua_context = LuaAppContext::init().expect("couldn't initialize lua context");
-    let components = Component::import_all_from_directory("components/", &lua_context.lua)
-      .expect("couldn't get components");
+
+    let mut components_dir = dirs::data_dir().expect("couldn't get data directory");
+    components_dir.push("yast/components");
+    let components = Component::import_all_from_directory(
+      &components_dir.to_string_lossy().to_string(),
+      &lua_context.lua,
+    )
+    .expect("couldn't get components");
 
     (
       Self {
