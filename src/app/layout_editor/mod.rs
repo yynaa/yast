@@ -30,7 +30,6 @@ pub struct LayoutEditor {
 
   pub parameter_options_combo_box_states: HashMap<String, combo_box::State<String>>,
   pub parameter_options_color_picker_opened: HashMap<String, bool>,
-  pub parameter_options_image_handles: HashMap<String, image::Handle>,
 }
 
 #[derive(Clone, Debug)]
@@ -87,7 +86,6 @@ impl LayoutEditor {
       new_component_combo_box_selected: None,
       parameter_options_combo_box_states: HashMap::new(),
       parameter_options_color_picker_opened: HashMap::new(),
-      parameter_options_image_handles: HashMap::new(),
     }
   }
 }
@@ -134,13 +132,6 @@ impl Window for LayoutEditor {
                   self
                     .parameter_options_color_picker_opened
                     .insert(p.name.clone(), false);
-                }
-                LuaComponentSettingValue::Image { bytes } => {
-                  if let Some(b) = bytes {
-                    self
-                      .parameter_options_image_handles
-                      .insert(p.name.clone(), image::Handle::from_bytes(b.clone()));
-                  }
                 }
                 _ => {}
               }
@@ -469,12 +460,17 @@ impl Window for LayoutEditor {
               .iter_mut()
               .find(|v| v.name == param)
               .unwrap();
-            self
-              .parameter_options_image_handles
-              .insert(param, image::Handle::from_bytes(bytes.clone()));
             match &to_edit.value {
-              LuaComponentSettingValue::Image { bytes: _ } => {
-                to_edit.value = LuaComponentSettingValue::Image { bytes: Some(bytes) };
+              LuaComponentSettingValue::Image {
+                bytes: _,
+                handle: _,
+              } => {
+                to_edit.value = LuaComponentSettingValue::Image {
+                  bytes: Some(bytes.clone()),
+                  handle: Some(crate::lua::widgets::image::ImageHandleLua(
+                    image::Handle::from_bytes(bytes),
+                  )),
+                };
               }
               _ => panic!("invalid value"),
             };

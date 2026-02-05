@@ -4,8 +4,22 @@ use mlua::prelude::*;
 use crate::{app::AppMessage, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
+pub struct ImageHandleLua(pub image::Handle);
+
+impl FromLua for ImageHandleLua {
+  fn from_lua(value: LuaValue, _: &Lua) -> LuaResult<Self> {
+    match value {
+      LuaValue::UserData(ud) => Ok(ud.borrow::<Self>()?.clone()),
+      _ => unreachable!(),
+    }
+  }
+}
+
+impl LuaUserData for ImageHandleLua {}
+
+#[derive(Clone)]
 pub struct LuaWidgetImage {
-  bytes: Vec<u8>,
+  handle: ImageHandleLua,
   width: Option<Length>,
   height: Option<Length>,
   content_fit: Option<ContentFit>,
@@ -15,9 +29,9 @@ pub struct LuaWidgetImage {
 }
 
 impl LuaWidgetImage {
-  pub fn new(bytes: Vec<u8>) -> Self {
+  pub fn new(handle: ImageHandleLua) -> Self {
     Self {
-      bytes,
+      handle,
       width: None,
       height: None,
       content_fit: None,
@@ -28,8 +42,7 @@ impl LuaWidgetImage {
   }
 
   pub fn build<'a>(self) -> Element<'a, AppMessage> {
-    let handle = image::Handle::from_bytes(self.bytes);
-    let mut img = image(handle);
+    let mut img = image(self.handle.0.clone());
 
     if let Some(width) = self.width {
       img = img.width(width);
@@ -190,7 +203,8 @@ impl LuaUserData for LuaWidgetImage {
 }
 
 pub(super) fn init_lua_widget_image(lua: &Lua, t: &LuaTable) -> LuaResult<()> {
-  let constructor = lua.create_function(|_, bytes: Vec<u8>| Ok(LuaWidgetImage::new(bytes)))?;
+  let constructor =
+    lua.create_function(|_, handle: ImageHandleLua| Ok(LuaWidgetImage::new(handle)))?;
   t.set("image", constructor)?;
   Ok(())
 }

@@ -1,5 +1,8 @@
 use anyhow::Result;
+use iced::widget::image;
 use mlua::prelude::*;
+
+use crate::lua::widgets::image::ImageHandleLua;
 
 #[derive(Clone)]
 pub struct LuaComponentSetting {
@@ -42,6 +45,7 @@ pub enum LuaComponentSettingValue {
   },
   Image {
     bytes: Option<Vec<u8>>,
+    handle: Option<ImageHandleLua>,
   },
 }
 
@@ -99,10 +103,12 @@ impl LuaUserData for LuaComponentSettings {
               table.set(4, value[3])?;
               Ok(LuaValue::Table(table))
             }
-            LuaComponentSettingValue::Image { bytes } => {
-              let data = bytes.as_ref().map(|b| &b[..]).unwrap_or(&[]);
-              let lua_bytes = lua.create_sequence_from(data.iter().copied())?;
-              Ok(LuaValue::Table(lua_bytes))
+            LuaComponentSettingValue::Image { bytes: _, handle } => {
+              if let Some(h) = handle {
+                Ok(LuaValue::UserData(lua.create_userdata(h.clone())?))
+              } else {
+                Ok(LuaValue::Nil)
+              }
             }
           },
           None => Err(LuaError::external(anyhow::Error::msg("setting not found"))),
@@ -203,7 +209,10 @@ impl LuaUserData for LuaComponentSettings {
       let mut settings = settings.clone();
       settings.values.push(LuaComponentSetting {
         name,
-        value: LuaComponentSettingValue::Image { bytes: None },
+        value: LuaComponentSettingValue::Image {
+          bytes: None,
+          handle: None,
+        },
       });
       Ok(settings)
     });

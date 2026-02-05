@@ -297,7 +297,7 @@ pub fn component_editor<'a>(
             );
           }
         }
-        LuaComponentSettingValue::Image { bytes: _ } => {
+        LuaComponentSettingValue::Image { bytes: _, handle } => {
           let mut row_vec = vec![
             text(format!("{}", name)).into(),
             space().width(Length::Fixed(5.0)).into(),
@@ -308,9 +308,9 @@ pub fn component_editor<'a>(
               .into(),
           ];
 
-          if let Some(b) = state.parameter_options_image_handles.get(&name) {
+          if let Some(b) = handle {
             row_vec.push(
-              image(b)
+              image(b.0.clone())
                 .width(Length::Fixed(100.))
                 .height(Length::Fixed(100.))
                 .into(),

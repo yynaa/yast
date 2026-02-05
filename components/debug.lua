@@ -8,7 +8,7 @@ return {
       :number("decimal_places", 2)
       :number_range("font_size", 12, 8, 32, 1)
       :color("text_color", 1.0, 1.0, 1.0, 1.0)
-      :image("icon"),
+      :image("background"),
   ["widget"] =
     function()
       local debugs = {}
@@ -36,8 +36,16 @@ return {
         end
       end
 
-      return widgets
-        .column(debugs)
-        :into()
+      local result = widgets.column(debugs):into()
+      local img = settings:get("background")
+      
+      if img ~= nil then
+        local vec = {}
+        table.insert(vec, widgets.image(img):width("fill"):height("fill"):into())
+        table.insert(vec, result)
+        result = widgets.stack(vec):width("fill"):height("fill"):into()
+      end
+      
+      return result
     end
 }
