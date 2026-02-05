@@ -1,0 +1,90 @@
+name = "untitled"
+author = ""
+width = 200.0
+height = 500.0
+
+[content]
+name = "Column"
+author = "Built-in"
+
+[content.parameters]
+values = []
+
+[[content.children]]
+name = "Awesome Component"
+author = "yyna"
+children = []
+
+[[content.children.parameters.values]]
+name = "Awesome"
+
+[content.children.parameters.values.value.Boolean]
+value = false
+
+[[content.children]]
+name = "Awesome Component"
+author = "yyna"
+children = []
+
+[[content.children.parameters.values]]
+name = "Awesome"
+
+[content.children.parameters.values.value.Boolean]
+value = true
+
+[[content.children]]
+name = "Awesome Component"
+author = "yyna"
+children = []
+
+[[content.children.parameters.values]]
+name = "Awesome"
+
+[content.children.parameters.values.value.Boolean]
+value = false
+
+[[content.children]]
+name = "Debug"
+author = "Built-in"
+children = []
+
+[[content.children.parameters.values]]
+name = "show_details"
+
+[content.children.parameters.values.value.Boolean]
+value = false
+
+[[content.children.parameters.values]]
+name = "prefix"
+
+[content.children.parameters.values.value.String]
+value = "Debug"
+
+[[content.children.parameters.values]]
+name = "view_mode"
+
+[content.children.parameters.values.value.Options]
+value = "Simple"
+
+[[content.children.parameters.values]]
+name = "decimal_places"
+
+[content.children.parameters.values.value.Number]
+value = 2.0
+
+[[content.children.parameters.values]]
+name = "font_size"
+
+[content.children.parameters.values.value.NumberRange]
+value = 12.0
+
+[[content.children.parameters.values]]
+name = "text_color"
+
+[content.children.parameters.values.value.Color]
+value = [1.0, 1.0, 1.0, 1.0]
+
+[[content.children.parameters.values]]
+name = "background"
+
+[content.children.parameters.values.value.Image]

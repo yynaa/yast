@@ -1,54 +1,66 @@
 use anyhow::Result;
 use mlua::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::lua::widgets::image::ImageHandleLua;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LuaComponentSetting {
   pub name: String,
   pub value: LuaComponentSettingValue,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum LuaComponentSettingValue {
   Boolean {
     value: bool,
+    #[serde(skip)]
     default: bool,
   },
 
   String {
     value: String,
+    #[serde(skip)]
     default: String,
   },
   Options {
     value: String,
+    #[serde(skip)]
     default: String,
+    #[serde(skip)]
     options: Vec<String>,
   },
 
   Number {
     value: f64,
+    #[serde(skip)]
     default: f64,
   },
   NumberRange {
     value: f64,
+    #[serde(skip)]
     default: f64,
+    #[serde(skip)]
     min: f64,
+    #[serde(skip)]
     max: f64,
+    #[serde(skip)]
     step: f64,
   },
 
   Color {
     value: [f32; 4],
+    #[serde(skip)]
     default: [f32; 4],
   },
   Image {
     bytes: Option<Vec<u8>>,
+    #[serde(skip)]
     handle: Option<ImageHandleLua>,
   },
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LuaComponentSettings {
   pub values: Vec<LuaComponentSetting>,
 }

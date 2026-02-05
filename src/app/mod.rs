@@ -7,7 +7,7 @@ use global_hotkey::{
   GlobalHotKeyEvent, GlobalHotKeyManager,
   hotkey::{Code, HotKey},
 };
-use iced::{Element, Subscription, Task, Theme, time::every, widget::space, window};
+use iced::{Element, Size, Subscription, Task, Theme, time::every, widget::space, window};
 use livesplit_core::{Run, Segment, Timer as LSTimer};
 
 use crate::{
@@ -56,7 +56,9 @@ pub enum AppMessage {
   Update,
 
   WindowClosed(window::Id),
+  WindowResized((window::Id, Size)),
   DragTimer,
+  ResizeTimer(f32, f32),
   OpenTimer(window::Id),
   RequestLayoutEditor,
   OpenLayoutEditor(window::Id),
@@ -77,6 +79,8 @@ impl App {
     let timer = LSTimer::new(run).unwrap();
 
     let lua_context = LuaAppContext::init().expect("couldn't initialize lua context");
+    let components = Component::import_all_from_directory("components/", &lua_context.lua)
+      .expect("couldn't get components");
 
     (
       Self {
@@ -85,8 +89,7 @@ impl App {
         _hotkeys: hotkeys,
 
         context: AppContext {
-          components: Component::import_all_from_directory("components/", &lua_context.lua)
-            .expect("couldn't get components"),
+          components,
           lua_context,
 
           layout: Layout::default(),
@@ -126,6 +129,18 @@ impl App {
           Task::none()
         }
       }
+      AppMessage::WindowResized((id, size)) => {
+        if self
+          .window_ids
+          .iter()
+          .find(|v| id == *v.0 && *v.1 == WindowType::Timer)
+          .is_some()
+        {
+          self.context.layout.width = size.width;
+          self.context.layout.height = size.height;
+        }
+        Task::none()
+      }
       AppMessage::DragTimer => window::drag(
         *self
           .window_ids
@@ -133,6 +148,15 @@ impl App {
           .find(|v| *v.1 == WindowType::Timer)
           .unwrap()
           .0,
+      ),
+      AppMessage::ResizeTimer(w, h) => window::resize(
+        *self
+          .window_ids
+          .iter()
+          .find(|v| *v.1 == WindowType::Timer)
+          .unwrap()
+          .0,
+        Size::new(w, h),
       ),
       AppMessage::OpenTimer(id) => {
         let timer = Timer::new();
@@ -187,6 +211,7 @@ impl App {
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
       window::close_events().map(AppMessage::WindowClosed),
+      window::resize_events().map(AppMessage::WindowResized),
       every(Duration::from_secs_f64(1.0 / 30.0)).map(|_| AppMessage::Update),
     ])
   }

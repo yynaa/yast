@@ -1,8 +1,13 @@
+use anyhow::Result;
+use mlua::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs};
+
 use crate::layout::component::Component;
 
 pub mod component;
 
-// serializing this may involve something like https://github.com/dtolnay/typetag
+#[derive(Serialize, Deserialize)]
 pub struct Layout {
   pub name: String,
   pub author: String,
@@ -10,6 +15,24 @@ pub struct Layout {
 
   pub width: f32,
   pub height: f32,
+}
+
+impl Layout {
+  pub fn load(components: &HashMap<String, String>, lua: &Lua, content: String) -> Result<Self> {
+    let mut layout = toml::from_str::<Self>(&content)?;
+
+    if let Some(root) = &mut layout.content {
+      root.load(components, lua)?
+    }
+
+    Ok(layout)
+  }
+
+  pub fn save(&self, path: &str) -> Result<()> {
+    let toml = toml::to_string(self)?;
+    fs::write(path, toml)?;
+    Ok(())
+  }
 }
 
 impl Default for Layout {
