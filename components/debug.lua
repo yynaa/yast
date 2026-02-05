@@ -1,6 +1,6 @@
 return {
   ["name"] = "Debug",
-  ["author"] = "Built-in",
+  ["author"] = "yyna",
   ["settings"] = build_settings()
       :boolean("show_details", false)
       :string("prefix", "Debug")

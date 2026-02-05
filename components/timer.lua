@@ -2,16 +2,16 @@ local sizing = require("sizing")
 
 return {
   ["name"] = "Timer",
-  ["author"] = "Built-in",
+  ["author"] = "yyna",
   ["settings"] = build_settings():plugin(sizing.plugin),
   ["widget"] =
     function()
-      return sizing.sizer(widgets
+      return widgets
         .text(tostring(snapshot.current_time.real_time))
-        :width("fill")
-        :height("fill")
+        :width(sizing.get_width())
+        :height(sizing.get_height())
         :align_x("center")
         :align_y("center")
-        :into())
+        :into()
     end
 }

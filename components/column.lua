@@ -1,6 +1,6 @@
 return {
   ["name"] = "Column",
-  ["author"] = "Built-in",
+  ["author"] = "yyna",
   ["settings"] = build_settings(),
   ["widget"] =
     function()

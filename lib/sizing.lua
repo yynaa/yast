@@ -2,50 +2,28 @@
 --- @return settings
 local function plugin(settings)
   return settings
-    :number_range("Component Width", 100., 1., 100., 1.)
-    :options("Component X Align", "Center", {"Left", "Center", "Right"})
-    :number_range("Component Height", 100., 1., 100., 1.)
-    :options("Component Y Align", "Center", {"Top", "Center", "Bottom"})
+    :number("Component Width", 100.)
+    :boolean("Component Fixed Width", false)
+    :number("Component Height", 100.)
+    :boolean("Component Fixed Height", false)
 end
 
---- @param widget widget
---- @return widget
-local function sizer(widget)
-  local x_align = settings:get("Component X Align")
-  local y_align = settings:get("Component Y Align")
+--- @return string, number
+local function get_width()
+  local typ = "fill_portion"
+  if settings:get("Component Fixed Width") then typ = "fixed" end
+  return typ, settings:get("Component Width")
+end
 
-  local width_portion = settings:get("Component Width")
-  local space_width_portion = 100 - width_portion
-  if x_align == "Center" then
-    space_width_portion = space_width_portion / 2
-  end
-  local row_vec = {}
-  if x_align ~= "Left" and space_width_portion > 0 then
-    table.insert(row_vec, widgets.space():height("fill"):width("fill_portion", space_width_portion):into())
-  end
-  table.insert(row_vec, widgets.container(widget):height("fill"):width("fill_portion", width_portion):into())
-  if x_align ~= "Right" and space_width_portion > 0 then
-    table.insert(row_vec, widgets.space():height("fill"):width("fill_portion", space_width_portion):into())
-  end
-
-  local height_portion = settings:get("Component Height")
-  local space_height_portion = 100 - height_portion
-  if y_align == "Center" then
-    space_height_portion = space_height_portion / 2
-  end
-  local column_vec = {}
-  if y_align ~= "Top" and space_height_portion > 0 then
-    table.insert(column_vec, widgets.space():width("fill"):height("fill_portion", space_height_portion):into())
-  end
-  table.insert(column_vec, widgets.row(row_vec):width("fill"):height("fill_portion", height_portion):into())
-  if y_align ~= "Bottom" and space_height_portion > 0 then
-    table.insert(column_vec, widgets.space():width("fill"):height("fill_portion", space_height_portion):into())
-  end
-
-  return widgets.column(column_vec):width("fill"):height("fill"):into()
+--- @return string, number
+local function get_height()
+  local typ = "fill_portion"
+  if settings:get("Component Fixed Height") then typ = "fixed" end
+  return typ, settings:get("Component Height")
 end
 
 return {
   ["plugin"] = plugin,
-  ["sizer"] = sizer
+  ["get_width"] = get_width,
+  ["get_height"] = get_height
 }
