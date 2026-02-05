@@ -38,14 +38,14 @@ return {
 
       local result = widgets.column(debugs):into()
       local img = settings:get("background")
-      
+
       if img ~= nil then
         local vec = {}
         table.insert(vec, widgets.image(img):width("fill"):height("fill"):into())
         table.insert(vec, result)
         result = widgets.stack(vec):width("fill"):height("fill"):into()
       end
-      
+
       return result
     end
 }
