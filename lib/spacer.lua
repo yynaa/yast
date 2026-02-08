@@ -11,9 +11,7 @@ end
 --- @param widget widget
 --- @return widget
 local function apply(widget)
-  local x_fill = settings:get("Component X Fill")
   local x_align = settings:get("Component X Align")
-  local y_fill = settings:get("Component Y Fill")
   local y_align = settings:get("Component Y Align")
 
   local width_portion = settings:get("Component Width")
@@ -22,11 +20,11 @@ local function apply(widget)
     space_width_portion = space_width_portion / 2
   end
   local row_vec = {}
-  if x_fill and x_align ~= "Left" and space_width_portion > 0 then
+  if x_align ~= "Left" and space_width_portion > 0 then
     table.insert(row_vec, widgets.space():height("fill"):width("fill_portion", space_width_portion):into())
   end
   table.insert(row_vec, widgets.container(widget):height("fill"):width("fill_portion", width_portion):into())
-  if x_fill and x_align ~= "Right" and space_width_portion > 0 then
+  if x_align ~= "Right" and space_width_portion > 0 then
     table.insert(row_vec, widgets.space():height("fill"):width("fill_portion", space_width_portion):into())
   end
 

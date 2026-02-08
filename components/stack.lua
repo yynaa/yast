@@ -1,5 +1,5 @@
 return {
-  ["name"] = "Column",
+  ["name"] = "Stack",
   ["author"] = "yyna",
   ["settings"] = build_settings(),
   ["widget"] =
@@ -10,7 +10,7 @@ return {
       end
 
       return widgets
-        .column(c)
+        .stack(c)
         :width("fill")
         :height("fill")
         :into()

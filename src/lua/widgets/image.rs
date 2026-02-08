@@ -1,4 +1,4 @@
-use iced::{widget::image, ContentFit, Element, Length, Rectangle};
+use iced::{ContentFit, Element, Length, Rectangle, widget::image};
 use mlua::prelude::*;
 
 use crate::{app::AppMessage, lua::widgets::LuaWidget};
