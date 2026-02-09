@@ -1,10 +1,9 @@
 use anyhow::Result;
+use livesplit_core::Timer;
 use mlua::prelude::*;
 
-use crate::app::AppContext;
-
-pub fn inject_values_in_lua(lua: &Lua, context: &AppContext) -> Result<()> {
-  let snapshot = context.timer.snapshot();
+pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
+  let snapshot = timer.snapshot();
 
   let current_attempt_duration = snapshot.current_attempt_duration().total_seconds();
   let current_comparison = snapshot.current_comparison();
@@ -34,7 +33,7 @@ pub fn inject_values_in_lua(lua: &Lua, context: &AppContext) -> Result<()> {
 
   lua.globals().set("snapshot", snapshot_table)?;
 
-  let run = context.timer.run();
+  let run = timer.run();
 
   let run_table = lua.create_table()?;
 

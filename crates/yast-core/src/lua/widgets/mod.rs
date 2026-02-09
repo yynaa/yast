@@ -3,17 +3,16 @@ use iced::Element;
 use mlua::prelude::*;
 
 use crate::{
-  app::AppMessage,
   layout::component::Component,
   lua::widgets::{
-    column::{init_lua_widget_column, LuaWidgetColumn},
-    container::{init_lua_widget_container, LuaWidgetContainer},
-    image::{init_lua_widget_image, LuaWidgetImage},
+    column::{LuaWidgetColumn, init_lua_widget_column},
+    container::{LuaWidgetContainer, init_lua_widget_container},
+    image::{LuaWidgetImage, init_lua_widget_image},
     internal::init_internals,
-    row::{init_lua_widget_row, LuaWidgetRow},
-    space::{init_lua_widget_space, LuaWidgetSpace},
-    stack::{init_lua_widget_stack, LuaWidgetStack},
-    text::{init_lua_widget_text, LuaWidgetText},
+    row::{LuaWidgetRow, init_lua_widget_row},
+    space::{LuaWidgetSpace, init_lua_widget_space},
+    stack::{LuaWidgetStack, init_lua_widget_stack},
+    text::{LuaWidgetText, init_lua_widget_text},
   },
 };
 
@@ -57,7 +56,7 @@ impl FromLua for LuaWidget {
 impl LuaUserData for LuaWidget {}
 
 impl LuaWidget {
-  pub fn build<'a>(self, tree: &Component) -> Element<'a, AppMessage> {
+  pub fn build<'a, M: 'a>(self, tree: &Component) -> Element<'a, M> {
     match self {
       LuaWidget::InternalChild(index) => {
         let child = tree

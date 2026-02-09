@@ -1,11 +1,11 @@
 use iced::{
+  Color, Element, Length, Pixels,
   alignment::{Horizontal, Vertical},
   widget::text,
-  Color, Element, Length, Pixels,
 };
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, lua::widgets::LuaWidget};
+use crate::lua::widgets::LuaWidget;
 
 #[derive(Clone)]
 pub struct LuaWidgetText {
@@ -31,7 +31,7 @@ impl LuaWidgetText {
     }
   }
 
-  pub fn build<'a>(self) -> Element<'a, AppMessage> {
+  pub fn build<'a, M>(self) -> Element<'a, M> {
     let mut t = text(self.content);
     if let Some(align_x) = self.align_x {
       t = t.align_x(align_x);

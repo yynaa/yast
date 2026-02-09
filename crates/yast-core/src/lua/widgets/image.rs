@@ -1,7 +1,7 @@
 use iced::{ContentFit, Element, Length, Rectangle, widget::image};
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, lua::widgets::LuaWidget};
+use crate::lua::widgets::LuaWidget;
 
 #[derive(Clone)]
 pub struct ImageHandleLua(pub image::Handle);
@@ -41,7 +41,7 @@ impl LuaWidgetImage {
     }
   }
 
-  pub fn build<'a>(self) -> Element<'a, AppMessage> {
+  pub fn build<'a, M>(self) -> Element<'a, M> {
     let mut img = image(self.handle.0.clone());
 
     if let Some(width) = self.width {

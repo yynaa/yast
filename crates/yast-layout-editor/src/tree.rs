@@ -3,11 +3,9 @@ use iced::{
   Color, Element, Length, Theme,
   widget::{button, text},
 };
+use yast_core::layout::component::Component;
 
-use crate::{
-  app::{AppMessage, layout_editor::LayoutEditorMessage},
-  layout::component::Component,
-};
+use crate::AppMessage;
 
 pub fn get_mut_component_at_path(
   p: &mut Component,
@@ -42,9 +40,7 @@ pub fn build_tree_from_layout_part<'a>(
   let is_current = *current_path == path;
   r.push(
     button(text(final_name))
-      .on_press(AppMessage::LayoutEditor(
-        LayoutEditorMessage::OpenComponent(path.clone()),
-      ))
+      .on_press(AppMessage::OpenComponent(path.clone()))
       .style(move |t: &Theme, _| button::Style {
         background: match is_current {
           true => Some(iced::Background::Color(t.palette().primary)),

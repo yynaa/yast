@@ -1,0 +1,14 @@
+[package]
+name = "yast-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+iced = { workspace = true }
+log = { workspace = true }
+mlua = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
+dirs = { workspace = true }
+livesplit-core = { workspace = true }

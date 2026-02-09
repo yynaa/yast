@@ -5,18 +5,12 @@ use iced::{
   widget::{button, checkbox, column, combo_box, image, row, slider, space, text, text_input},
 };
 use iced_aw::color_picker;
+use yast_core::{layout::component::Component, lua::settings::LuaComponentSettingValue};
 
-use crate::{
-  app::{
-    AppMessage,
-    layout_editor::{LayoutEditor, LayoutEditorMessage},
-  },
-  layout::component::Component,
-  lua::settings::LuaComponentSettingValue,
-};
+use crate::{App, AppMessage};
 
 pub fn component_editor<'a>(
-  state: &'a LayoutEditor,
+  state: &'a App,
   p: &Component,
   full_path: Vec<usize>,
   mut path: Vec<usize>,
@@ -45,9 +39,7 @@ pub fn component_editor<'a>(
 
     layout_part_attributes_row_vec.push(
       button("Delete Component")
-        .on_press(AppMessage::LayoutEditor(
-          LayoutEditorMessage::DeleteComponent(full_path.clone()),
-        ))
+        .on_press(AppMessage::DeleteComponent(full_path.clone()))
         .into(),
     );
 
@@ -56,16 +48,12 @@ pub fn component_editor<'a>(
 
       layout_part_attributes_row_vec.push(
         button("Move Up")
-          .on_press(AppMessage::LayoutEditor(
-            LayoutEditorMessage::MoveComponentUp(full_path.clone()),
-          ))
+          .on_press(AppMessage::MoveComponentUp(full_path.clone()))
           .into(),
       );
       layout_part_attributes_row_vec.push(
         button("Move Down")
-          .on_press(AppMessage::LayoutEditor(
-            LayoutEditorMessage::MoveComponentDown(full_path.clone()),
-          ))
+          .on_press(AppMessage::MoveComponentDown(full_path.clone()))
           .into(),
       );
 
@@ -73,16 +61,12 @@ pub fn component_editor<'a>(
 
       layout_part_attributes_row_vec.push(
         button("Enter Above")
-          .on_press(AppMessage::LayoutEditor(
-            LayoutEditorMessage::EnterAboveComponent(full_path.clone()),
-          ))
+          .on_press(AppMessage::EnterAboveComponent(full_path.clone()))
           .into(),
       );
       layout_part_attributes_row_vec.push(
         button("Exit Parent")
-          .on_press(AppMessage::LayoutEditor(
-            LayoutEditorMessage::ExitParentComponent(full_path.clone()),
-          ))
+          .on_press(AppMessage::ExitParentComponent(full_path.clone()))
           .into(),
       );
     }
@@ -96,17 +80,17 @@ pub fn component_editor<'a>(
             &state.new_component_combo_box_state,
             "Components",
             state.new_component_combo_box_selected.as_ref(),
-            |f| AppMessage::LayoutEditor(LayoutEditorMessage::NewComponentComboBoxSelected(f)),
+            |f| AppMessage::NewComponentComboBoxSelected(f),
           )
           .into(),
           space().width(Length::Fixed(5.0)).into(),
           button("Add Component")
-            .on_press_maybe(state.new_component_combo_box_selected.as_ref().map(|f| {
-              AppMessage::LayoutEditor(LayoutEditorMessage::AddNewComponent(
-                full_path.clone(),
-                f.clone(),
-              ))
-            }))
+            .on_press_maybe(
+              state
+                .new_component_combo_box_selected
+                .as_ref()
+                .map(|f| AppMessage::AddNewComponent(full_path.clone(), f.clone())),
+            )
             .into(),
           space().width(Length::Fixed(5.0)).into(),
           button("Switch Component").into(),
@@ -136,11 +120,11 @@ pub fn component_editor<'a>(
               space().width(Length::Fixed(5.0)).into(),
               checkbox(*value)
                 .on_toggle(move |new| {
-                  AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterBoolean(
+                  AppMessage::ModifyParameterBoolean(
                     moved_full_path.clone(),
                     moved_name.clone(),
                     new,
-                  ))
+                  )
                 })
                 .into(),
             ])
@@ -158,11 +142,11 @@ pub fn component_editor<'a>(
               space().width(Length::Fixed(5.0)).into(),
               text_input(&name, &moved_current)
                 .on_input(move |new| {
-                  AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterString(
+                  AppMessage::ModifyParameterString(
                     moved_full_path.clone(),
                     moved_name.clone(),
                     new,
-                  ))
+                  )
                 })
                 .into(),
             ])
@@ -184,11 +168,7 @@ pub fn component_editor<'a>(
                 text(format!("{}", name)).into(),
                 space().width(Length::Fixed(5.0)).into(),
                 combo_box(st, "", Some(value), move |s| {
-                  AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterOptions(
-                    moved_full_path.clone(),
-                    moved_name.clone(),
-                    s,
-                  ))
+                  AppMessage::ModifyParameterOptions(moved_full_path.clone(), moved_name.clone(), s)
                 })
                 .into(),
               ])
@@ -207,11 +187,11 @@ pub fn component_editor<'a>(
               space().width(Length::Fixed(5.0)).into(),
               text_input(&name, &format!("{}", value))
                 .on_input(move |new| {
-                  AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterNumber(
+                  AppMessage::ModifyParameterNumber(
                     moved_full_path.clone(),
                     moved_name.clone(),
                     new,
-                  ))
+                  )
                 })
                 .into(),
             ])
@@ -234,11 +214,11 @@ pub fn component_editor<'a>(
               text(format!("{}", name)).into(),
               space().width(Length::Fixed(5.0)).into(),
               slider(*min..=*max, *value, move |new| {
-                AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterNumberRange(
+                AppMessage::ModifyParameterNumberRange(
                   moved_full_path.clone(),
                   moved_name.clone(),
                   new,
-                ))
+                )
               })
               .step(*step)
               .into(),
@@ -267,18 +247,14 @@ pub fn component_editor<'a>(
                       background: Some(Background::Color(color_color)),
                       ..Default::default()
                     })
-                    .on_press(AppMessage::LayoutEditor(
-                      LayoutEditorMessage::ModifyParameterColorOpen(name.clone()),
-                    )),
-                  AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterColorCancel(
-                    name.clone(),
-                  )),
+                    .on_press(AppMessage::ModifyParameterColorOpen(name.clone())),
+                  AppMessage::ModifyParameterColorCancel(name.clone()),
                   move |n| {
-                    AppMessage::LayoutEditor(LayoutEditorMessage::ModifyParameterColorSubmit(
+                    AppMessage::ModifyParameterColorSubmit(
                       moved_full_path.clone(),
                       moved_name.clone(),
                       n,
-                    ))
+                    )
                   },
                 )
                 .into(),
@@ -302,8 +278,9 @@ pub fn component_editor<'a>(
             text(format!("{}", name)).into(),
             space().width(Length::Fixed(5.0)).into(),
             button("Open Image")
-              .on_press(AppMessage::LayoutEditor(
-                LayoutEditorMessage::ModifyParameterImageOpen(full_path.clone(), name.clone()),
+              .on_press(AppMessage::ModifyParameterImageOpen(
+                full_path.clone(),
+                name.clone(),
               ))
               .into(),
           ];

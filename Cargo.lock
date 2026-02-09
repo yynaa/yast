@@ -111,9 +111,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.100"
+version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
+checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
 name = "arbitrary"
@@ -947,12 +947,6 @@ name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
-
-[[package]]
-name = "dyn-clone"
-version = "1.0.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 
 [[package]]
 name = "either"
@@ -5481,7 +5475,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dirs",
- "dyn-clone",
  "global-hotkey",
  "iced",
  "iced_aw",
@@ -5492,6 +5485,37 @@ dependencies = [
  "rfd",
  "serde",
  "toml",
+ "yast-core",
+]
+
+[[package]]
+name = "yast-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "iced",
+ "livesplit-core",
+ "log",
+ "mlua",
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "yast-layout-editor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "iced",
+ "iced_aw",
+ "livesplit-core",
+ "log",
+ "mlua",
+ "pretty_env_logger",
+ "rfd",
+ "yast-core",
 ]
 
 [[package]]

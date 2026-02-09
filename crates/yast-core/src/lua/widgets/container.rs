@@ -1,11 +1,11 @@
 use iced::{
+  Color, Element, Length, Padding,
   alignment::{Horizontal, Vertical},
   widget::container,
-  Color, Element, Length, Padding,
 };
 use mlua::prelude::*;
 
-use crate::{app::AppMessage, layout::component::Component, lua::widgets::LuaWidget};
+use crate::{layout::component::Component, lua::widgets::LuaWidget};
 
 #[derive(Clone)]
 pub struct LuaWidgetContainer {
@@ -33,7 +33,7 @@ impl LuaWidgetContainer {
     }
   }
 
-  pub fn build<'a>(self, tree: &Component) -> Element<'a, AppMessage> {
+  pub fn build<'a, M: 'a>(self, tree: &Component) -> Element<'a, M> {
     let inner_built = self.inner.build(tree);
 
     let mut c = container(inner_built);

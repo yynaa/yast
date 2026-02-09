@@ -5,11 +5,11 @@ pub mod inject;
 pub mod settings;
 pub mod widgets;
 
-pub struct LuaAppContext {
+pub struct LuaContext {
   pub lua: Lua,
 }
 
-impl LuaAppContext {
+impl LuaContext {
   pub fn init() -> Result<Self> {
     let lua = Lua::new();
 

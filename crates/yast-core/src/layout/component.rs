@@ -9,12 +9,9 @@ use iced::{Element, widget::image};
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  app::AppMessage,
-  lua::{
-    settings::{LuaComponentSettingValue, LuaComponentSettings},
-    widgets::{LuaWidget, image::ImageHandleLua},
-  },
+use crate::lua::{
+  settings::{LuaComponentSettingValue, LuaComponentSettings},
+  widgets::{LuaWidget, image::ImageHandleLua},
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -156,7 +153,6 @@ impl Component {
             };
           }
         }
-        _ => todo!(),
       }
     }
 
@@ -186,7 +182,7 @@ impl Component {
     Ok(components)
   }
 
-  pub fn build<'a>(&self) -> Result<Element<'a, AppMessage>> {
+  pub fn build<'a, M: 'a>(&self) -> Result<Element<'a, M>> {
     if let Some(widget) = &self.widget {
       let env = widget.environment().unwrap();
 
