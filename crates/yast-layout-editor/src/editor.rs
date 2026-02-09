@@ -230,48 +230,71 @@ pub fn component_editor<'a>(
           );
         }
         LuaComponentSettingValue::Color { value, default: _ } => {
-          if let Some(opened) = state.parameter_options_color_picker_opened.get(&name) {
-            let moved_name = name.clone();
-            let moved_full_path = full_path.clone();
-            let color_color = Color::from_rgba(value[0], value[1], value[2], value[3]);
+          let moved_name_0 = name.clone();
+          let moved_full_path_0 = full_path.clone();
+          let moved_name_1 = name.clone();
+          let moved_full_path_1 = full_path.clone();
+          let moved_name_2 = name.clone();
+          let moved_full_path_2 = full_path.clone();
+          let moved_name_3 = name.clone();
+          let moved_full_path_3 = full_path.clone();
 
-            column_vec.push(
-              row(vec![
-                text(format!("{}", name)).into(),
-                space().width(Length::Fixed(5.0)).into(),
-                color_picker(
-                  *opened,
-                  color_color,
-                  button(space())
-                    .style(move |_, _| button::Style {
-                      background: Some(Background::Color(color_color)),
-                      ..Default::default()
-                    })
-                    .on_press(AppMessage::ModifyParameterColorOpen(name.clone())),
-                  AppMessage::ModifyParameterColorCancel(name.clone()),
-                  move |n| {
-                    AppMessage::ModifyParameterColorSubmit(
-                      moved_full_path.clone(),
-                      moved_name.clone(),
-                      n,
-                    )
-                  },
-                )
+          column_vec.push(
+            row(vec![
+              text(format!("{}", name)).into(),
+              text_input(&name, &format!("{}", value[0] * 255.))
+                .on_input(move |new| {
+                  AppMessage::ModifyParameterColor(
+                    moved_full_path_0.clone(),
+                    moved_name_0.clone(),
+                    0,
+                    new,
+                  )
+                })
                 .into(),
-                space().width(Length::Fixed(5.0)).into(),
-                text(format!(
-                  "#{:02x}{:02x}{:02x}{:02x}",
-                  (value[0] * 255.) as u32,
-                  (value[1] * 255.) as u32,
-                  (value[2] * 255.) as u32,
-                  (value[3] * 255.) as u32
-                ))
+              text_input(&name, &format!("{}", value[1] * 255.))
+                .on_input(move |new| {
+                  AppMessage::ModifyParameterColor(
+                    moved_full_path_1.clone(),
+                    moved_name_1.clone(),
+                    1,
+                    new,
+                  )
+                })
                 .into(),
-              ])
-              .align_y(Vertical::Center)
+              text_input(&name, &format!("{}", value[2] * 255.))
+                .on_input(move |new| {
+                  AppMessage::ModifyParameterColor(
+                    moved_full_path_2.clone(),
+                    moved_name_2.clone(),
+                    2,
+                    new,
+                  )
+                })
+                .into(),
+              text_input(&name, &format!("{}", value[3] * 255.))
+                .on_input(move |new| {
+                  AppMessage::ModifyParameterColor(
+                    moved_full_path_3.clone(),
+                    moved_name_3.clone(),
+                    3,
+                    new,
+                  )
+                })
+                .into(),
+              text(format!(
+                "#{:02x}{:02x}{:02x}{:02x}",
+                (value[0] * 255.) as u32,
+                (value[1] * 255.) as u32,
+                (value[2] * 255.) as u32,
+                (value[3] * 255.) as u32
+              ))
               .into(),
-            );
-          }
+            ])
+            .spacing(5.0)
+            .align_y(Vertical::Center)
+            .into(),
+          );
         }
         LuaComponentSettingValue::Image { bytes: _, handle } => {
           let mut row_vec = vec![

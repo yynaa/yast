@@ -22,8 +22,13 @@ local function get_height()
   return typ, settings:get("Component Height")
 end
 
+local function apply(widget)
+  return widgets.container(widget):width(get_width()):height(get_height()):into()
+end
+
 return {
   ["plugin"] = plugin,
   ["get_width"] = get_width,
-  ["get_height"] = get_height
+  ["get_height"] = get_height,
+  ["apply"] = apply
 }

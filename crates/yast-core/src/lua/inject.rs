@@ -1,5 +1,6 @@
 use anyhow::Result;
 use livesplit_core::{Timer, analysis};
+use log::trace;
 use mlua::prelude::*;
 
 pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
@@ -8,7 +9,7 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
   let current_attempt_duration = snapshot.current_attempt_duration().total_seconds();
   let current_comparison = snapshot.current_comparison();
   let current_phase = format!("{:?}", snapshot.current_phase());
-  let current_split = snapshot.current_split_index();
+  let current_split = snapshot.current_split_index().map(|f| f + 1);
   let current_time = snapshot.current_time();
   let current_timing_method = format!("{:?}", snapshot.current_timing_method());
 
@@ -33,7 +34,7 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
 
   lua.globals().set("snapshot", snapshot_table)?;
 
-  let run = timer.run();
+  let mut run = timer.run();
 
   let run_table = lua.create_table()?;
 
@@ -51,7 +52,12 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
   run_table.set("metadata", metadata_table)?;
 
   let mut comparison_names: Vec<String> = vec!["Personal Best".to_string()];
-  comparison_names.extend(run.custom_comparisons().to_vec());
+  comparison_names.extend(
+    run
+      .comparisons()
+      .map(|f| f.to_string())
+      .collect::<Vec<String>>(),
+  );
 
   let segments_table = lua.create_table()?;
   for (i, segment) in run.segments().iter().enumerate() {
@@ -219,7 +225,7 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
       previous_segment_delta_table.set("game_time", previous_segment_delta_game_time)?;
       segment_table.set("previous_segment_delta", previous_segment_delta_table)?;
 
-      segments_table.set(i, segment_table)?;
+      segments_table.set(i + 1, segment_table)?;
     }
     comp_table.set("segments", segments_table)?;
 
@@ -265,7 +271,7 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
     previous_segment_time_table.set("game_time", previous_segment_time_game_time)?;
     segment_table.set("previous_segment_time", previous_segment_time_table)?;
 
-    segments_table.set(i, segment_table)?;
+    segments_table.set(i + 1, segment_table)?;
   }
   analysis_table.set("segments", segments_table)?;
 

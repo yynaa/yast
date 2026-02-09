@@ -1,5 +1,5 @@
 use anyhow::Result;
-use handy_keys::{Hotkey, HotkeyId, HotkeyManager, Key, Modifiers};
+use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, Key, Modifiers};
 use iced_aw::ContextMenu;
 use yast_core::{
   layout::{Layout, component::Component},
@@ -18,6 +18,7 @@ use iced::{
 };
 use livesplit_core::{
   Run, Segment, Timer as LSTimer,
+  comparison::default_generators,
   run::{
     parser,
     saver::livesplit::{IoWrite, save_timer},
@@ -34,7 +35,9 @@ use std::{
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
 
 pub enum HotkeyAction {
-  StartTimer,
+  StartOrSplitTimer,
+  ResetTimer,
+  PauseTimer,
 }
 
 pub struct App {
@@ -72,9 +75,23 @@ impl App {
 
     hotkeys.insert(
       hotkey_manager
-        .register(Hotkey::new(Modifiers::empty(), Key::Space).unwrap())
+        .register(Hotkey::new(Modifiers::CTRL, Key::S).unwrap())
         .unwrap(),
-      HotkeyAction::StartTimer,
+      HotkeyAction::StartOrSplitTimer,
+    );
+
+    hotkeys.insert(
+      hotkey_manager
+        .register(Hotkey::new(Modifiers::CTRL, Key::R).unwrap())
+        .unwrap(),
+      HotkeyAction::ResetTimer,
+    );
+
+    hotkeys.insert(
+      hotkey_manager
+        .register(Hotkey::new(Modifiers::CTRL, Key::P).unwrap())
+        .unwrap(),
+      HotkeyAction::PauseTimer,
     );
 
     let mut run = Run::new();
@@ -117,9 +134,17 @@ impl App {
       }
       AppMessage::Update => {
         if let Some(event) = self.hotkey_manager.try_recv() {
-          match self.hotkeys.get(&event.id).unwrap() {
-            HotkeyAction::StartTimer => {
-              self.timer.start();
+          if let HotkeyState::Pressed = event.state {
+            match self.hotkeys.get(&event.id).unwrap() {
+              HotkeyAction::StartOrSplitTimer => {
+                self.timer.split_or_start();
+              }
+              HotkeyAction::ResetTimer => {
+                self.timer.reset(true);
+              }
+              HotkeyAction::PauseTimer => {
+                self.timer.toggle_pause();
+              }
             }
           }
         }

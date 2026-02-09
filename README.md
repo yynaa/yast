@@ -28,7 +28,7 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
 - ⚠️ Default Layout components
   - ⚠️ Libraries
   - ⚠️ Containers
-  - 🔴 Information
+  - ⚠️ Information
 - ✅ Layout Editor
 - 🔴 Splits Editor (use [LSO](https://one.livesplit.org) until then)
 

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use livesplit_core::{Run, Segment, Timer};
+use livesplit_core::{Run, Segment, Timer, comparison::default_generators, run::Comparisons};
 use yast_core::{
   layout::{Layout, component::Component},
   lua::{
@@ -40,7 +40,6 @@ pub struct App {
   pub new_component_combo_box_state: combo_box::State<String>,
   pub new_component_combo_box_selected: Option<String>,
   pub parameter_options_combo_box_states: HashMap<String, combo_box::State<String>>,
-  pub parameter_options_color_picker_opened: HashMap<String, bool>,
 }
 
 #[derive(Clone, Debug)]
@@ -71,9 +70,7 @@ pub enum AppMessage {
   ModifyParameterOptions(Vec<usize>, String, String),
   ModifyParameterNumber(Vec<usize>, String, String),
   ModifyParameterNumberRange(Vec<usize>, String, f64),
-  ModifyParameterColorOpen(String),
-  ModifyParameterColorCancel(String),
-  ModifyParameterColorSubmit(Vec<usize>, String, Color),
+  ModifyParameterColor(Vec<usize>, String, usize, String),
   ModifyParameterImageOpen(Vec<usize>, String),
   ModifyParameterImageSubmit(Vec<usize>, String, Vec<u8>),
 }
@@ -86,6 +83,7 @@ impl App {
     for i in 1..=10 {
       run.push_segment(Segment::new(&format!("Segment {}", i)));
     }
+
     let timer = Timer::new(run).unwrap();
 
     let lua_context = LuaContext::init().expect("couldn't initialize lua context");
@@ -119,7 +117,6 @@ impl App {
         new_component_combo_box_state: combo_box::State::new(new_component_options),
         new_component_combo_box_selected: None,
         parameter_options_combo_box_states: HashMap::new(),
-        parameter_options_color_picker_opened: HashMap::new(),
       },
       Task::none(),
     )
@@ -179,7 +176,6 @@ impl App {
           self.opened_component = n.clone();
           self.new_component_combo_box_selected = None;
           self.parameter_options_combo_box_states.clear();
-          self.parameter_options_color_picker_opened.clear();
 
           let comp = get_mut_component_at_path(lcontent, n).unwrap();
           for p in &comp.get_parameters().values {
@@ -192,14 +188,6 @@ impl App {
                 self
                   .parameter_options_combo_box_states
                   .insert(p.name.clone(), combo_box::State::new(options.clone()));
-              }
-              LuaComponentSettingValue::Color {
-                value: _,
-                default: _,
-              } => {
-                self
-                  .parameter_options_color_picker_opened
-                  .insert(p.name.clone(), false);
               }
               _ => {}
             }
@@ -462,43 +450,35 @@ impl App {
           unreachable!()
         }
       }
-      AppMessage::ModifyParameterColorOpen(param) => {
-        self
-          .parameter_options_color_picker_opened
-          .insert(param, true);
-        Task::none()
-      }
-      AppMessage::ModifyParameterColorSubmit(path, param, value) => {
+      AppMessage::ModifyParameterColor(path, param, col, col_value) => {
         if let Some(lcontent) = &mut self.layout.content {
-          self
-            .parameter_options_color_picker_opened
-            .insert(param.clone(), false);
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::Color { value: _, default } => {
-              to_edit.value = LuaComponentSettingValue::Color {
-                value: [value.r, value.g, value.b, value.a],
-                default: *default,
+          if let Ok(col_value_f32) = col_value.parse::<f32>() {
+            if col_value_f32 < 256. {
+              let component = get_mut_component_at_path(lcontent, path).unwrap();
+              let parameters = component.get_parameters_mut();
+              let to_edit = parameters
+                .values
+                .iter_mut()
+                .find(|v| v.name == param)
+                .unwrap();
+              match &to_edit.value {
+                LuaComponentSettingValue::Color { value, default } => {
+                  let mut new_value = value.clone();
+                  new_value[col] = col_value_f32 / 255.;
+
+                  to_edit.value = LuaComponentSettingValue::Color {
+                    value: new_value,
+                    default: *default,
+                  };
+                }
+                _ => panic!("invalid value"),
               };
             }
-            _ => panic!("invalid value"),
-          };
+          }
           Task::none()
         } else {
           unreachable!()
         }
-      }
-      AppMessage::ModifyParameterColorCancel(param) => {
-        self
-          .parameter_options_color_picker_opened
-          .insert(param, false);
-        Task::none()
       }
       AppMessage::ModifyParameterImageOpen(path, param) => Task::future(
         rfd::AsyncFileDialog::new()
