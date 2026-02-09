@@ -22,9 +22,9 @@ use global_hotkey::{
   hotkey::{Code, HotKey},
 };
 use iced::{
-  Background, Element, Length, Size, Subscription, Task, Theme,
+  Background, Color, Element, Length, Size, Subscription, Task, Theme,
   time::every,
-  widget::{button, column, space},
+  widget::{button, column, container, space, stack},
   window,
 };
 use livesplit_core::{
@@ -221,7 +221,7 @@ impl App {
       ..Default::default()
     };
 
-    ContextMenu::new(inner, move || {
+    let context = ContextMenu::new(inner, move || {
       column(vec![
         button("load splits")
           .width(Length::Fill)
@@ -251,6 +251,17 @@ impl App {
       .spacing(2.0)
       .into()
     })
+    .into();
+
+    stack(vec![
+      container(space().width(Length::Fill).height(Length::Fill))
+        .style(|_| container::Style {
+          background: Some(Background::Color(Color::BLACK)),
+          ..Default::default()
+        })
+        .into(),
+      context,
+    ])
     .into()
   }
 
