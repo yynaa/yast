@@ -35,7 +35,7 @@ static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
 
 pub struct App {
   window_id: Option<window::Id>,
-  hotkeys: HotkeyManager,
+  hotkey_manager: HotkeyManager,
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
@@ -64,10 +64,6 @@ impl App {
   fn new() -> (Self, Task<AppMessage>) {
     let hotkeys = HotkeyManager::new().unwrap();
 
-    hotkeys
-      .register(Hotkey::new(Modifiers::empty(), Key::A).unwrap())
-      .unwrap();
-
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
     let timer = LSTimer::new(run).unwrap();
@@ -86,7 +82,7 @@ impl App {
       Self {
         window_id: None,
 
-        hotkeys,
+        hotkey_manager: hotkeys,
 
         components,
         lua_context,
@@ -106,7 +102,7 @@ impl App {
         Task::none()
       }
       AppMessage::Update => {
-        if let Some(_event) = self.hotkeys.try_recv() {}
+        if let Some(_event) = self.hotkey_manager.try_recv() {}
 
         Task::none()
       }

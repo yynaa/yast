@@ -1,9 +1,9 @@
-local spacer = require("spacer")
+local spacing = require("spacing")
 
 return {
   ["name"] = "Image",
   ["author"] = "yyna",
-  ["settings"] = build_settings():plugin(spacer.plugin):image("Image"):number_range("Opacity", 100., 0., 100., 1.),
+  ["settings"] = build_settings():plugin(spacing.plugin):image("Image"):number_range("Opacity", 100., 0., 100., 1.),
   ["widget"] =
     function()
       local stack_vec = {
@@ -26,6 +26,6 @@ return {
           :into())
       end
 
-      return spacer.apply(widgets.stack(stack_vec):width("fill"):height("fill"):into())
+      return spacing.apply(widgets.stack(stack_vec):width("fill"):height("fill"):into())
     end
 }

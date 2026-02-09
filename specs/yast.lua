@@ -68,6 +68,7 @@ local widget = {}
 --- @field size fun(self: widget_text, size: number): widget_text
 --- @field width fun(self: widget_text, type: "fill"|"fill_portion"|"shrink"|"fixed", unit: number|nil): widget_text
 --- @field height fun(self: widget_text, type: "fill"|"fill_portion"|"shrink"|"fixed", unit: number|nil): widget_text
+--- @field font fun(self: widget_text, font: string): widget_text
 
 --- @param content string
 --- @return widget_text

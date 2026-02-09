@@ -34,11 +34,11 @@ local function apply(widget)
     space_height_portion = space_height_portion / 2
   end
   local column_vec = {}
-  if x_fill and y_align ~= "Top" and space_height_portion > 0 then
+  if  y_align ~= "Top" and space_height_portion > 0 then
     table.insert(column_vec, widgets.space():width("fill"):height("fill_portion", space_height_portion):into())
   end
   table.insert(column_vec, widgets.row(row_vec):width("fill"):height("fill_portion", height_portion):into())
-  if x_fill and y_align ~= "Bottom" and space_height_portion > 0 then
+  if y_align ~= "Bottom" and space_height_portion > 0 then
     table.insert(column_vec, widgets.space():width("fill"):height("fill_portion", space_height_portion):into())
   end
 

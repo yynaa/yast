@@ -1,5 +1,5 @@
 use iced::{
-  Color, Element, Length, Pixels,
+  Color, Element, Font, Length, Pixels,
   alignment::{Horizontal, Vertical},
   widget::text,
 };
@@ -16,6 +16,7 @@ pub struct LuaWidgetText {
   width: Option<Length>,
   height: Option<Length>,
   size: Option<Pixels>,
+  font: Option<String>,
 }
 
 impl LuaWidgetText {
@@ -28,6 +29,7 @@ impl LuaWidgetText {
       width: None,
       height: None,
       size: None,
+      font: None,
     }
   }
 
@@ -50,6 +52,9 @@ impl LuaWidgetText {
     }
     if let Some(size) = self.size {
       t = t.size(size);
+    }
+    if let Some(font) = self.font {
+      t = t.font(Font::with_name(font.clone().leak()))
     }
     t.into()
   }
@@ -174,6 +179,13 @@ impl LuaUserData for LuaWidgetText {
     methods.add_method("size", |_, w, size: f32| {
       Ok(LuaWidgetText {
         size: Some(Pixels(size)),
+        ..w.clone()
+      })
+    });
+
+    methods.add_method("font", |_, w, font: String| {
+      Ok(LuaWidgetText {
+        font: Some(font),
         ..w.clone()
       })
     });
