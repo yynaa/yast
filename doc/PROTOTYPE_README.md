@@ -4,7 +4,7 @@ This notice is for installing a pre-built version of the YAST prototype.
 
 ## Contents
 
-- YAST-<xx.xxxx-xxxx>-<target>.zip
+- YAST-[xx.xxxx-xxxx]-[target].zip
   - *yast(.exe)* - YAST's main app
   - *yasle(.exe)* - YAST's layout editor (may be unstable)
   - *components/* - default YAST components, need to be installed in data dir
