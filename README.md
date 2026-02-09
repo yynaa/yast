@@ -7,7 +7,7 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
 
 ## Rationale
 
-- Cross-platform editor based on the most widely used timer in the world
+- Cross-platform timer based on the most widely used timer in the world
 - Interoperability with said timer
 - Ease of development for Layout through Lua scripting
 
