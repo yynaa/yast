@@ -1,5 +1,5 @@
 use anyhow::Result;
-use livesplit_core::Timer;
+use livesplit_core::{Timer, analysis};
 use mlua::prelude::*;
 
 pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
@@ -74,6 +74,247 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
   run_table.set("segments", segments_table)?;
 
   lua.globals().set("run", run_table)?;
+
+  let analysis_table = lua.create_table()?;
+
+  let analysis_comparisons_table = lua.create_table()?;
+  for comp_name in &comparison_names {
+    let comp_table = lua.create_table()?;
+
+    let current_pace = analysis::current_pace::calculate(&snapshot, comp_name);
+    let current_pace_table = lua.create_table()?;
+    current_pace_table.set("time", current_pace.0.map(|f| f.total_seconds()))?;
+    current_pace_table.set("is_live", current_pace.1)?;
+    comp_table.set("current_pace", current_pace_table)?;
+
+    let delta = analysis::delta::calculate(&snapshot, comp_name);
+    let delta_table = lua.create_table()?;
+    delta_table.set("delta", delta.0.map(|f| f.total_seconds()))?;
+    delta_table.set("is_live", delta.1)?;
+    comp_table.set("delta", delta_table)?;
+
+    let live_delta_real_time = analysis::state_helper::check_live_delta(
+      &snapshot,
+      false,
+      comp_name,
+      livesplit_core::TimingMethod::RealTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_delta_game_time = analysis::state_helper::check_live_delta(
+      &snapshot,
+      false,
+      comp_name,
+      livesplit_core::TimingMethod::GameTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_delta_table = lua.create_table()?;
+    live_delta_table.set("real_time", live_delta_real_time)?;
+    live_delta_table.set("game_time", live_delta_game_time)?;
+    analysis_table.set("live_delta", live_delta_table)?;
+
+    let live_split_delta_real_time = analysis::state_helper::check_live_delta(
+      &snapshot,
+      true,
+      comp_name,
+      livesplit_core::TimingMethod::RealTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_split_delta_game_time = analysis::state_helper::check_live_delta(
+      &snapshot,
+      true,
+      comp_name,
+      livesplit_core::TimingMethod::GameTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_split_delta_table = lua.create_table()?;
+    live_split_delta_table.set("real_time", live_split_delta_real_time)?;
+    live_split_delta_table.set("game_time", live_split_delta_game_time)?;
+    analysis_table.set("live_split_delta", live_split_delta_table)?;
+
+    let segments_table = lua.create_table()?;
+    for (i, _segment) in run.segments().iter().enumerate() {
+      let segment_table = lua.create_table()?;
+
+      let pst = analysis::possible_time_save::calculate(&snapshot, i, comp_name, true);
+      let pst_table = lua.create_table()?;
+      pst_table.set("time", pst.0.map(|f| f.total_seconds()))?;
+      pst_table.set("is_live", pst.1)?;
+      segment_table.set("possible_save_time", pst_table)?;
+
+      let total_pst = analysis::possible_time_save::calculate_total(&snapshot, i, comp_name);
+      let total_pst_table = lua.create_table()?;
+      total_pst_table.set("time", total_pst.0.total_seconds())?;
+      total_pst_table.set("is_live", total_pst.1)?;
+      segment_table.set("total_possible_save_time", total_pst_table)?;
+
+      let is_best_segment_real_time = analysis::state_helper::check_best_segment(
+        &timer,
+        i,
+        livesplit_core::TimingMethod::RealTime,
+      );
+      let is_best_segment_game_time = analysis::state_helper::check_best_segment(
+        &timer,
+        i,
+        livesplit_core::TimingMethod::GameTime,
+      );
+      let is_best_segment_table = lua.create_table()?;
+      is_best_segment_table.set("real_time", is_best_segment_real_time)?;
+      is_best_segment_table.set("game_time", is_best_segment_game_time)?;
+      segment_table.set("is_best_segment", is_best_segment_table)?;
+
+      let last_delta_real_time = analysis::state_helper::last_delta(
+        timer.run(),
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::RealTime,
+      )
+      .map(|f| f.total_seconds());
+      let last_delta_game_time = analysis::state_helper::last_delta(
+        timer.run(),
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::GameTime,
+      )
+      .map(|f| f.total_seconds());
+      let last_delta_table = lua.create_table()?;
+      last_delta_table.set("real_time", last_delta_real_time)?;
+      last_delta_table.set("game_time", last_delta_game_time)?;
+      segment_table.set("last_delta", last_delta_table)?;
+
+      let live_segment_delta_real_time = analysis::state_helper::live_segment_delta(
+        &snapshot,
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::RealTime,
+      )
+      .map(|f| f.total_seconds());
+      let live_segment_delta_game_time = analysis::state_helper::live_segment_delta(
+        &snapshot,
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::GameTime,
+      )
+      .map(|f| f.total_seconds());
+      let live_segment_delta_table = lua.create_table()?;
+      live_segment_delta_table.set("real_time", live_segment_delta_real_time)?;
+      live_segment_delta_table.set("game_time", live_segment_delta_game_time)?;
+      segment_table.set("live_segment_delta", live_segment_delta_table)?;
+
+      let previous_segment_delta_real_time = analysis::state_helper::previous_segment_delta(
+        &snapshot,
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::RealTime,
+      )
+      .map(|f| f.total_seconds());
+      let previous_segment_delta_game_time = analysis::state_helper::previous_segment_delta(
+        &snapshot,
+        i,
+        comp_name,
+        livesplit_core::TimingMethod::GameTime,
+      )
+      .map(|f| f.total_seconds());
+      let previous_segment_delta_table = lua.create_table()?;
+      previous_segment_delta_table.set("real_time", previous_segment_delta_real_time)?;
+      previous_segment_delta_table.set("game_time", previous_segment_delta_game_time)?;
+      segment_table.set("previous_segment_delta", previous_segment_delta_table)?;
+
+      segments_table.set(i, segment_table)?;
+    }
+    comp_table.set("segments", segments_table)?;
+
+    analysis_comparisons_table.set(comp_name.as_str(), comp_table)?;
+  }
+  analysis_table.set("comparisons", analysis_comparisons_table)?;
+
+  let segments_table = lua.create_table()?;
+  for (i, _segment) in run.segments().iter().enumerate() {
+    let segment_table = lua.create_table()?;
+
+    let live_segment_time_real_time = analysis::state_helper::live_segment_time(
+      &snapshot,
+      i,
+      livesplit_core::TimingMethod::RealTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_segment_time_game_time = analysis::state_helper::live_segment_time(
+      &snapshot,
+      i,
+      livesplit_core::TimingMethod::GameTime,
+    )
+    .map(|f| f.total_seconds());
+    let live_segment_time_table = lua.create_table()?;
+    live_segment_time_table.set("real_time", live_segment_time_real_time)?;
+    live_segment_time_table.set("game_time", live_segment_time_game_time)?;
+    segment_table.set("live_segment_time", live_segment_time_table)?;
+
+    let previous_segment_time_real_time = analysis::state_helper::previous_segment_time(
+      &snapshot,
+      i,
+      livesplit_core::TimingMethod::RealTime,
+    )
+    .map(|f| f.total_seconds());
+    let previous_segment_time_game_time = analysis::state_helper::previous_segment_time(
+      &snapshot,
+      i,
+      livesplit_core::TimingMethod::GameTime,
+    )
+    .map(|f| f.total_seconds());
+    let previous_segment_time_table = lua.create_table()?;
+    previous_segment_time_table.set("real_time", previous_segment_time_real_time)?;
+    previous_segment_time_table.set("game_time", previous_segment_time_game_time)?;
+    segment_table.set("previous_segment_time", previous_segment_time_table)?;
+
+    segments_table.set(i, segment_table)?;
+  }
+  analysis_table.set("segments", segments_table)?;
+
+  let pb_chance = analysis::pb_chance::for_timer(&snapshot);
+  let pb_chance_table = lua.create_table()?;
+  pb_chance_table.set("chance", pb_chance.0)?;
+  pb_chance_table.set("is_live", pb_chance.1)?;
+  analysis_table.set("pb_chance", pb_chance_table)?;
+
+  let sum_of_best_segments_real_time = analysis::sum_of_segments::calculate_best(
+    timer.run().segments(),
+    false,
+    false,
+    livesplit_core::TimingMethod::RealTime,
+  )
+  .map(|f| f.total_seconds());
+  let sum_of_best_segments_game_time = analysis::sum_of_segments::calculate_best(
+    timer.run().segments(),
+    false,
+    false,
+    livesplit_core::TimingMethod::GameTime,
+  )
+  .map(|f| f.total_seconds());
+  let sum_of_best_segments_table = lua.create_table()?;
+  sum_of_best_segments_table.set("real_time", sum_of_best_segments_real_time)?;
+  sum_of_best_segments_table.set("game_time", sum_of_best_segments_game_time)?;
+  analysis_table.set("sum_of_best_segments", sum_of_best_segments_table)?;
+
+  let sum_of_worst_segments_real_time = analysis::sum_of_segments::calculate_worst(
+    timer.run().segments(),
+    false,
+    livesplit_core::TimingMethod::RealTime,
+  )
+  .map(|f| f.total_seconds());
+  let sum_of_worst_segments_game_time = analysis::sum_of_segments::calculate_worst(
+    timer.run().segments(),
+    false,
+    livesplit_core::TimingMethod::GameTime,
+  )
+  .map(|f| f.total_seconds());
+  let sum_of_worst_segments_table = lua.create_table()?;
+  sum_of_worst_segments_table.set("real_time", sum_of_worst_segments_real_time)?;
+  sum_of_worst_segments_table.set("game_time", sum_of_worst_segments_game_time)?;
+  analysis_table.set("sum_of_worst_segments", sum_of_worst_segments_table)?;
+
+  let total_playtime = analysis::total_playtime::calculate(&timer).total_seconds();
+  analysis_table.set("total_playtime", total_playtime)?;
+
+  lua.globals().set("analysis", analysis_table)?;
 
   Ok(())
 }

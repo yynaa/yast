@@ -1,5 +1,5 @@
 use anyhow::Result;
-use handy_keys::{Hotkey, HotkeyManager, Key, Modifiers};
+use handy_keys::{Hotkey, HotkeyId, HotkeyManager, Key, Modifiers};
 use iced_aw::ContextMenu;
 use yast_core::{
   layout::{Layout, component::Component},
@@ -33,9 +33,14 @@ use std::{
 
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
 
+pub enum HotkeyAction {
+  StartTimer,
+}
+
 pub struct App {
   window_id: Option<window::Id>,
   hotkey_manager: HotkeyManager,
+  hotkeys: HashMap<HotkeyId, HotkeyAction>,
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
@@ -62,7 +67,15 @@ pub enum AppMessage {
 
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
-    let hotkeys = HotkeyManager::new().unwrap();
+    let hotkey_manager = HotkeyManager::new().unwrap();
+    let mut hotkeys = HashMap::new();
+
+    hotkeys.insert(
+      hotkey_manager
+        .register(Hotkey::new(Modifiers::empty(), Key::Space).unwrap())
+        .unwrap(),
+      HotkeyAction::StartTimer,
+    );
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
@@ -82,7 +95,8 @@ impl App {
       Self {
         window_id: None,
 
-        hotkey_manager: hotkeys,
+        hotkey_manager,
+        hotkeys,
 
         components,
         lua_context,
@@ -102,7 +116,13 @@ impl App {
         Task::none()
       }
       AppMessage::Update => {
-        if let Some(_event) = self.hotkey_manager.try_recv() {}
+        if let Some(event) = self.hotkey_manager.try_recv() {
+          match self.hotkeys.get(&event.id).unwrap() {
+            HotkeyAction::StartTimer => {
+              self.timer.start();
+            }
+          }
+        }
 
         Task::none()
       }

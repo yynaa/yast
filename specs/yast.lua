@@ -149,3 +149,64 @@ function widgets.space() end
 --- @field len number
 --- @field get fun(index: number): widget
 children = {}
+
+--- @class analysis_pace_time
+--- @field time number | nil
+--- @field is_live boolean
+local analysis_pace_time = {}
+
+--- @class analysis_delta_time
+--- @field delta number | nil
+--- @field is_live boolean
+local analysis_delta_time = {}
+
+--- @class analysis_time
+--- @field real_time number | nil
+--- @field game_time number | nil
+local analysis_time = {}
+
+--- @class analysis_timestamp_time
+--- @field time number | nil
+--- @field is_live boolean
+local analysis_timestamp_time = {}
+
+--- @class analysis_segment_data
+--- @field possible_save_time analysis_timestamp_time
+--- @field total_possible_save_time analysis_timestamp_time
+--- @field is_best_segment analysis_time
+--- @field last_delta analysis_time
+--- @field live_segment_delta analysis_time
+--- @field previous_segment_delta analysis_time
+local analysis_segment_data = {}
+
+--- @class analysis_comparison_data
+--- @field current_pace analysis_pace_time
+--- @field delta analysis_delta_time
+--- @field segments analysis_segment_data[]
+local analysis_comparison_data = {}
+
+--- @class analysis_segment_timing
+--- @field live_segment_time analysis_time
+--- @field previous_segment_time analysis_time
+local analysis_segment_timing = {}
+
+--- @class analysis_sum_segments
+--- @field real_time number | nil
+--- @field game_time number | nil
+local analysis_sum_segments = {}
+
+--- @class analysis_pb_chance
+--- @field chance number
+--- @field is_live boolean
+local analysis_pb_chance = {}
+
+--- @class analysis
+--- @field comparisons table<string, analysis_comparison_data>
+--- @field live_delta analysis_time
+--- @field live_split_delta analysis_time
+--- @field segments analysis_segment_timing[]
+--- @field pb_chance analysis_pb_chance
+--- @field sum_of_best_segments analysis_sum_segments
+--- @field sum_of_worst_segments analysis_sum_segments
+--- @field total_playtime number
+analysis = {}
