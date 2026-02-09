@@ -1,4 +1,5 @@
 use anyhow::Result;
+use handy_keys::{Hotkey, HotkeyManager, Key, Modifiers};
 use iced_aw::ContextMenu;
 use yast_core::{
   layout::{Layout, component::Component},
@@ -9,18 +10,6 @@ extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
-use std::{
-  collections::HashMap,
-  fs::{self, File, read_to_string},
-  io::BufWriter,
-  path::Path,
-  time::Duration,
-};
-
-use global_hotkey::{
-  GlobalHotKeyEvent, GlobalHotKeyManager,
-  hotkey::{Code, HotKey},
-};
 use iced::{
   Background, Color, Element, Length, Size, Subscription, Task, Theme,
   time::every,
@@ -34,12 +23,19 @@ use livesplit_core::{
     saver::livesplit::{IoWrite, save_timer},
   },
 };
+use std::{
+  collections::HashMap,
+  fs::{self, File, read_to_string},
+  io::BufWriter,
+  path::Path,
+  time::Duration,
+};
 
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
 
 pub struct App {
   window_id: Option<window::Id>,
-  _hotkeys: GlobalHotKeyManager,
+  hotkeys: HotkeyManager,
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
@@ -66,10 +62,11 @@ pub enum AppMessage {
 
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
-    let hotkeys = GlobalHotKeyManager::new().unwrap();
+    let hotkeys = HotkeyManager::new().unwrap();
 
-    hotkeys.register(HotKey::new(None, Code::Numpad1)).unwrap();
-    hotkeys.register(HotKey::new(None, Code::Numpad3)).unwrap();
+    hotkeys
+      .register(Hotkey::new(Modifiers::empty(), Key::A).unwrap())
+      .unwrap();
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
@@ -89,7 +86,7 @@ impl App {
       Self {
         window_id: None,
 
-        _hotkeys: hotkeys,
+        hotkeys,
 
         components,
         lua_context,
@@ -109,17 +106,7 @@ impl App {
         Task::none()
       }
       AppMessage::Update => {
-        if let Ok(event) = GlobalHotKeyEvent::receiver().try_recv() {
-          match event.id {
-            85 => {
-              self.timer.start();
-            }
-            87 => {
-              self.timer.reset(true);
-            }
-            _ => {}
-          }
-        }
+        if let Some(_event) = self.hotkeys.try_recv() {}
 
         Task::none()
       }
@@ -272,7 +259,7 @@ impl App {
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
       window::resize_events().map(AppMessage::WindowResized),
-      every(Duration::from_secs_f64(1.0 / 30.0)).map(|_| AppMessage::Update),
+      every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
   }
 }
