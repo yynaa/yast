@@ -46,7 +46,7 @@ cargo build
 ### Installing default components
 
 YAST comes with no default layout components, you need to install them yourself.  
-You need to copy the contents of `components/` and `lib/` in your data directory, under the `yast` folder.
+You need to copy `components/` and `lib/` in your data directory, under the `yast` folder.
 
 | Platform | Value                                    | Example                                           |
 | -------- | ---------------------------------------- | ----------------------------------------          |
