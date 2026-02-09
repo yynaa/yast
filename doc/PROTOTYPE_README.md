@@ -20,7 +20,7 @@ This notice is for installing a pre-built version of the YAST prototype.
 | -------- | ---------------------------------------- | ----------------------------------------          |
 | Linux    | `$XDG_DATA_HOME` or `$HOME`/.local/share | /home/alice/.local/share/yast/...                 |
 | macOS    | `$HOME`/Library/Application Support      | /Users/Alice/Library/Application Support/yast/... |
-| Windows  | `{FOLDERID_LocalAppData}`                | C:\Users\Alice\AppData\Local\yast\...             |
+| Windows  | `{FOLDERID_RoamingAppData}`              | C:\Users\Alice\AppData\Roaming\yast\...           |
 
 (taken from [dirs](https://docs.rs/dirs/latest/dirs/fn.data_dir.html))
 
