@@ -13,7 +13,7 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
 
 ## Features
 
-*✅ = ok, ⌛ = untested, ⚠️ = partial, 🔴 = todo*
+✅ = ok, ⌛ = untested, ⚠️ = partial, 🔴 = todo
 
 - ⌛ Cross-platform
   - ✅ Linux
