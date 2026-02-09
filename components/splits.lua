@@ -57,7 +57,7 @@ local function segment_content(i)
     time_best = segment_best.game_time
   end
   
-  if not snapshot.current_split or i > snapshot.current_split or time + delta < time_best then
+  if not snapshot.current_split or i > snapshot.current_split or i == snapshot.current_split and time + delta < time_best then
     delta = nil
   end
   
