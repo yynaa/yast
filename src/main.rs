@@ -35,6 +35,8 @@ use livesplit_core::{
   },
 };
 
+static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
+
 pub struct App {
   window_id: Option<window::Id>,
   _hotkeys: GlobalHotKeyManager,
@@ -253,7 +255,7 @@ impl App {
   }
 
   fn title(&self) -> String {
-    String::from("YAST")
+    format!("YAST prototype {}", PROTOTYPE_VERSION)
   }
 
   fn subscription(&self) -> Subscription<AppMessage> {
@@ -265,7 +267,7 @@ impl App {
 }
 
 pub fn run_app() -> iced::Result {
-  info!("starting YAST app");
+  info!("starting YAST prototype {}", PROTOTYPE_VERSION);
 
   iced::application(App::new, App::update, App::view)
     .subscription(App::subscription)
