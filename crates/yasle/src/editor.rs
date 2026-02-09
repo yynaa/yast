@@ -1,10 +1,9 @@
 use anyhow::Result;
 use iced::{
-  Alignment, Background, Color, Element, Length,
+  Alignment, Element, Length,
   alignment::Vertical,
   widget::{button, checkbox, column, combo_box, image, row, slider, space, text, text_input},
 };
-use iced_aw::color_picker;
 use yast_core::{layout::component::Component, lua::settings::LuaComponentSettingValue};
 
 use crate::{App, AppMessage};

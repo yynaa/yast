@@ -1,5 +1,5 @@
 [package]
-name = "yast-layout-editor"
+name = "yasle"
 edition = "2024"
 
 [dependencies]

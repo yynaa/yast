@@ -4,7 +4,7 @@ edition = "2024"
 
 [workspace]
 members = [
-  "crates/yast-core", "crates/yast-layout-editor"
+  "crates/yast-core", "crates/yasle"
 ]
 
 [dependencies]

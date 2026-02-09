@@ -18,7 +18,6 @@ use iced::{
 };
 use livesplit_core::{
   Run, Segment, Timer as LSTimer,
-  comparison::default_generators,
   run::{
     parser,
     saver::livesplit::{IoWrite, save_timer},

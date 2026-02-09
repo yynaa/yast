@@ -2,3 +2,4 @@
 .zed
 **/*.yasl
 **/*.lss
+prototype/**

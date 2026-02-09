@@ -1,6 +1,5 @@
 use anyhow::Result;
 use livesplit_core::{Timer, analysis};
-use log::trace;
 use mlua::prelude::*;
 
 pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
@@ -34,7 +33,7 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
 
   lua.globals().set("snapshot", snapshot_table)?;
 
-  let mut run = timer.run();
+  let run = timer.run();
 
   let run_table = lua.create_table()?;
 

@@ -5626,6 +5626,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a5a4b21e1a62b67a2970e6831bc091d7b87e119e7f9791aef9702e3bef04448"
 
 [[package]]
+name = "yasle"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "iced",
+ "iced_aw",
+ "livesplit-core",
+ "log",
+ "mlua",
+ "pretty_env_logger",
+ "rfd",
+ "yast-core",
+]
+
+[[package]]
 name = "yast"
 version = "0.0.0"
 dependencies = [
@@ -5656,22 +5672,6 @@ dependencies = [
  "mlua",
  "serde",
  "toml",
-]
-
-[[package]]
-name = "yast-layout-editor"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "dirs",
- "iced",
- "iced_aw",
- "livesplit-core",
- "log",
- "mlua",
- "pretty_env_logger",
- "rfd",
- "yast-core",
 ]
 
 [[package]]

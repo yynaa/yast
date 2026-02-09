@@ -1,5 +1,5 @@
 use anyhow::Result;
-use livesplit_core::{Run, Segment, Timer, comparison::default_generators, run::Comparisons};
+use livesplit_core::{Run, Segment, Timer};
 use yast_core::{
   layout::{Layout, component::Component},
   lua::{
@@ -17,7 +17,7 @@ use crate::{
   tree::{build_tree_from_layout_part, get_mut_component_at_path},
 };
 use iced::{
-  Color, Element, Length, Task, Theme,
+  Element, Length, Task, Theme,
   widget::{button, column, combo_box, image, row, space, text, text_input},
 };
 use std::{
@@ -27,6 +27,8 @@ use std::{
 
 pub mod editor;
 pub mod tree;
+
+static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
 
 pub struct App {
   components: HashMap<String, String>,
@@ -624,12 +626,12 @@ impl App {
   }
 
   fn title(&self) -> String {
-    String::from("YAST Layout Editor")
+    format!("YASLE prototype {}", PROTOTYPE_VERSION)
   }
 }
 
 pub fn run_app() -> iced::Result {
-  info!("starting YAST Layout Editor app");
+  info!("starting YASLE prototype {}", PROTOTYPE_VERSION);
 
   iced::application(App::new, App::update, App::view)
     .title(App::title)
