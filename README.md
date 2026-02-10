@@ -20,7 +20,7 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
     - ✅ X11
     - ✅ Wayland
   - ⌛ Windows
-  - ⌛ MacOS
+  - ✅ MacOS
 - ⚠️ Interoperable with LiveSplit One
   - ✅ Base splits
   - 🔴 Autosplitting

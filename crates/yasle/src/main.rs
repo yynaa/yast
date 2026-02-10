@@ -17,8 +17,8 @@ use crate::{
   tree::{build_tree_from_layout_part, get_mut_component_at_path},
 };
 use iced::{
-  Element, Length, Task, Theme,
-  widget::{button, column, combo_box, image, row, space, text, text_input},
+  Background, Color, Element, Length, Task, Theme,
+  widget::{button, column, combo_box, container, image, row, space, stack, text, text_input},
 };
 use std::{
   collections::HashMap,
@@ -568,7 +568,18 @@ impl App {
         space().width(Length::Fill).height(Length::Fill).into()
       };
 
-      main_column_vec.push(inner);
+      let inner_with_background = stack(vec![
+        container(space().width(Length::Fill).height(Length::Fill))
+          .style(|_| container::Style {
+            background: Some(Background::Color(Color::BLACK)),
+            ..Default::default()
+          })
+          .into(),
+        inner,
+      ])
+      .into();
+
+      main_column_vec.push(inner_with_background);
     } else {
       if let Some(lcontent) = &self.layout.content {
         main_column_vec.push(

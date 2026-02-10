@@ -10,7 +10,7 @@ use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::lua::{
-  settings::{LuaComponentSettingValue, LuaComponentSettings},
+  settings::{LuaComponentSetting, LuaComponentSettingValue, LuaComponentSettings},
   widgets::{LuaWidget, image::ImageHandleLua},
 };
 
@@ -53,108 +53,226 @@ impl Component {
 
     self.widget = template.widget;
 
-    for i in 0..self.parameters.values.len() {
-      match &self.parameters.values[i].value {
-        LuaComponentSettingValue::Boolean { value, default: _ } => {
-          if let LuaComponentSettingValue::Boolean { value: _, default } =
-            &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::Boolean {
-              value: value.clone(),
-              default: default.clone(),
-            };
+    // for i in 0..self.parameters.values.len() {
+    //   match &self.parameters.values[i].value {
+    //     LuaComponentSettingValue::Boolean { value, default: _ } => {
+    //       if let LuaComponentSettingValue::Boolean { value: _, default } =
+    //         &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::Boolean {
+    //           value: value.clone(),
+    //           default: default.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::String { value, default: _ } => {
+    //       if let LuaComponentSettingValue::String { value: _, default } =
+    //         &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::String {
+    //           value: value.clone(),
+    //           default: default.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::Options {
+    //       value,
+    //       default: _,
+    //       options: _,
+    //     } => {
+    //       if let LuaComponentSettingValue::Options {
+    //         value: _,
+    //         default,
+    //         options,
+    //       } = &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::Options {
+    //           value: value.to_string(),
+    //           default: default.clone(),
+    //           options: options.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::Number { value, default: _ } => {
+    //       if let LuaComponentSettingValue::Number { value: _, default } =
+    //         &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::Number {
+    //           value: value.clone(),
+    //           default: default.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::NumberRange {
+    //       value,
+    //       default: _,
+    //       min: _,
+    //       max: _,
+    //       step: _,
+    //     } => {
+    //       if let LuaComponentSettingValue::NumberRange {
+    //         value: _,
+    //         default,
+    //         min,
+    //         max,
+    //         step,
+    //       } = &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::NumberRange {
+    //           value: value.clone(),
+    //           default: default.clone(),
+    //           min: min.clone(),
+    //           max: max.clone(),
+    //           step: step.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::Color { value, default: _ } => {
+    //       if let LuaComponentSettingValue::Color { value: _, default } =
+    //         &template.parameters.values[i].value
+    //       {
+    //         self.parameters.values[i].value = LuaComponentSettingValue::Color {
+    //           value: value.clone(),
+    //           default: default.clone(),
+    //         };
+    //       }
+    //     }
+    //     LuaComponentSettingValue::Image { bytes, handle: _ } => {
+    //       if let LuaComponentSettingValue::Image {
+    //         bytes: _,
+    //         handle: _,
+    //       } = &template.parameters.values[i].value
+    //       {
+    //         let handle = bytes
+    //           .clone()
+    //           .map(|b| ImageHandleLua(image::Handle::from_bytes(b)));
+
+    //         self.parameters.values[i].value = LuaComponentSettingValue::Image {
+    //           bytes: bytes.clone(),
+    //           handle,
+    //         };
+    //       }
+    //     }
+    //   }
+    // }
+
+    let mut fixed_settings = Vec::new();
+    for tp in &template.parameters.values {
+      let rpo = self.parameters.values.iter().find(|f| f.name == tp.name);
+      if let Some(rp) = rpo {
+        let v = match &tp.value {
+          LuaComponentSettingValue::Boolean { value: _, default } => {
+            if let LuaComponentSettingValue::Boolean { value, default: _ } = rp.value {
+              LuaComponentSettingValue::Boolean {
+                value,
+                default: *default,
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::String { value, default: _ } => {
-          if let LuaComponentSettingValue::String { value: _, default } =
-            &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::String {
-              value: value.clone(),
-              default: default.clone(),
-            };
+          LuaComponentSettingValue::String { value: _, default } => {
+            if let LuaComponentSettingValue::String { value, default: _ } = &rp.value {
+              LuaComponentSettingValue::String {
+                value: value.clone(),
+                default: default.clone(),
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::Options {
-          value,
-          default: _,
-          options: _,
-        } => {
-          if let LuaComponentSettingValue::Options {
+          LuaComponentSettingValue::Options {
             value: _,
             default,
             options,
-          } = &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::Options {
-              value: value.to_string(),
-              default: default.clone(),
-              options: options.clone(),
-            };
+          } => {
+            if let LuaComponentSettingValue::Options {
+              value,
+              default: _,
+              options: _,
+            } = &rp.value
+            {
+              LuaComponentSettingValue::Options {
+                value: value.clone(),
+                default: default.clone(),
+                options: options.clone(),
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::Number { value, default: _ } => {
-          if let LuaComponentSettingValue::Number { value: _, default } =
-            &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::Number {
-              value: value.clone(),
-              default: default.clone(),
-            };
+          LuaComponentSettingValue::Number { value: _, default } => {
+            if let LuaComponentSettingValue::Number { value, default: _ } = rp.value {
+              LuaComponentSettingValue::Number {
+                value,
+                default: *default,
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::NumberRange {
-          value,
-          default: _,
-          min: _,
-          max: _,
-          step: _,
-        } => {
-          if let LuaComponentSettingValue::NumberRange {
+          LuaComponentSettingValue::NumberRange {
             value: _,
             default,
             min,
             max,
             step,
-          } = &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::NumberRange {
-              value: value.clone(),
-              default: default.clone(),
-              min: min.clone(),
-              max: max.clone(),
-              step: step.clone(),
-            };
+          } => {
+            if let LuaComponentSettingValue::NumberRange {
+              value,
+              default: _,
+              min: _,
+              max: _,
+              step: _,
+            } = rp.value
+            {
+              LuaComponentSettingValue::NumberRange {
+                value,
+                default: *default,
+                min: *min,
+                max: *max,
+                step: *step,
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::Color { value, default: _ } => {
-          if let LuaComponentSettingValue::Color { value: _, default } =
-            &template.parameters.values[i].value
-          {
-            self.parameters.values[i].value = LuaComponentSettingValue::Color {
-              value: value.clone(),
-              default: default.clone(),
-            };
+          LuaComponentSettingValue::Color { value: _, default } => {
+            if let LuaComponentSettingValue::Color { value, default: _ } = rp.value {
+              LuaComponentSettingValue::Color {
+                value,
+                default: *default,
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
-        LuaComponentSettingValue::Image { bytes, handle: _ } => {
-          if let LuaComponentSettingValue::Image {
+          LuaComponentSettingValue::Image {
             bytes: _,
             handle: _,
-          } = &template.parameters.values[i].value
-          {
-            let handle = bytes
-              .clone()
-              .map(|b| ImageHandleLua(image::Handle::from_bytes(b)));
-
-            self.parameters.values[i].value = LuaComponentSettingValue::Image {
-              bytes: bytes.clone(),
-              handle,
-            };
+          } => {
+            if let LuaComponentSettingValue::Image { bytes, handle: _ } = &rp.value {
+              let handle = bytes
+                .clone()
+                .map(|b| ImageHandleLua(image::Handle::from_bytes(b)));
+              LuaComponentSettingValue::Image {
+                bytes: bytes.clone(),
+                handle,
+              }
+            } else {
+              tp.value.clone()
+            }
           }
-        }
+        };
+        fixed_settings.push(LuaComponentSetting {
+          name: tp.name.clone(),
+          value: v,
+        });
+      } else {
+        fixed_settings.push(tp.clone());
       }
     }
+    self.parameters.values = fixed_settings;
 
     for child in &mut self.children {
       child.load(components, lua)?;

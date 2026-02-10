@@ -314,10 +314,26 @@ pub fn run_app() -> iced::Result {
     .run()
 }
 
+#[cfg(target_os = "macos")]
+fn is_ready() -> Result<bool> {
+  let acc = handy_keys::check_accessibility();
+  if !acc {
+    handy_keys::open_accessibility_settings()?;
+  }
+  acc
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_ready() -> Result<bool> {
+  Ok(true)
+}
+
 fn main() -> Result<()> {
   pretty_env_logger::init_timed();
 
-  run_app()?;
+  if is_ready()? {
+    run_app()?;
+  }
 
   Ok(())
 }
