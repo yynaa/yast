@@ -17,7 +17,8 @@ use iced::{
   window,
 };
 use livesplit_core::{
-  Run, Segment, Timer as LSTimer,
+  Run, Segment, SharedTimer, Timer,
+  auto_splitting::Runtime,
   run::{
     parser,
     saver::livesplit::{IoWrite, save_timer},
@@ -46,7 +47,9 @@ pub struct App {
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
-  pub timer: LSTimer,
+  pub timer: SharedTimer,
+  #[allow(unused)]
+  autosplitter: Runtime,
 }
 
 #[derive(Clone, Debug)]
@@ -54,6 +57,7 @@ pub enum AppMessage {
   Init(Option<window::Id>),
   Update,
 
+  WindowClosing(window::Id),
   WindowResized((window::Id, Size)),
   ResizeTimer(f32, f32),
 
@@ -65,6 +69,8 @@ pub enum AppMessage {
   LoadLayout(String),
   SaveLayoutOpenPicker,
   SaveLayout(String),
+  LoadAutosplitterOpenPicker,
+  LoadAutosplitter(String),
 }
 
 impl App {
@@ -95,7 +101,9 @@ impl App {
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
-    let timer = LSTimer::new(run).unwrap();
+    let timer = Timer::new(run).unwrap().into_shared();
+
+    let autosplitter = Runtime::new(timer.clone());
 
     let lua_context = LuaContext::init().expect("couldn't initialize lua context");
 
@@ -120,6 +128,7 @@ impl App {
         layout: Layout::default(),
 
         timer,
+        autosplitter,
       },
       window::latest().map(AppMessage::Init),
     )
@@ -134,15 +143,16 @@ impl App {
       AppMessage::Update => {
         if let Some(event) = self.hotkey_manager.try_recv() {
           if let HotkeyState::Pressed = event.state {
+            let mut timer = self.timer.write().unwrap();
             match self.hotkeys.get(&event.id).unwrap() {
               HotkeyAction::StartOrSplitTimer => {
-                self.timer.split_or_start();
+                timer.split_or_start();
               }
               HotkeyAction::ResetTimer => {
-                self.timer.reset(true);
+                timer.reset(true);
               }
               HotkeyAction::PauseTimer => {
-                self.timer.toggle_pause();
+                timer.toggle_pause();
               }
             }
           }
@@ -154,6 +164,11 @@ impl App {
         self.layout.width = size.width;
         self.layout.height = size.height;
         Task::none()
+      }
+      AppMessage::WindowClosing(_id) => {
+        info!("closing YAST");
+
+        iced::exit()
       }
       AppMessage::ResizeTimer(w, h) => window::resize(self.window_id.unwrap(), Size::new(w, h)),
       AppMessage::LoadSplitsOpenPicker => Task::future(
@@ -172,7 +187,8 @@ impl App {
         let p = Path::new(&path);
         let source = fs::read(p).unwrap();
         let parsed_run = parser::parse_and_fix(&source, Some(p)).unwrap();
-        self.timer = LSTimer::new(parsed_run.run).unwrap();
+        self.timer = Timer::new(parsed_run.run).unwrap().into_shared();
+        self.autosplitter = Runtime::new(self.timer.clone());
         Task::none()
       }
       AppMessage::SaveSplitsOpenPicker => Task::future(
@@ -190,7 +206,10 @@ impl App {
       AppMessage::SaveSplits(path) => {
         let file = File::create(path).unwrap();
         let writer = BufWriter::new(file);
-        save_timer(&self.timer, IoWrite(writer)).unwrap();
+        {
+          let timer = self.timer.read().unwrap();
+          save_timer(&timer, IoWrite(writer)).unwrap();
+        }
         Task::none()
       }
       AppMessage::LoadLayoutOpenPicker => Task::future(
@@ -230,11 +249,31 @@ impl App {
         self.layout.save(&path).unwrap();
         Task::none()
       }
+      AppMessage::LoadAutosplitterOpenPicker => Task::future(
+        rfd::AsyncFileDialog::new()
+          .add_filter("LiveSplit Autosplitter", &["wasm"])
+          .pick_file(),
+      )
+      .then(|handle| match handle {
+        Some(handle) => {
+          let file_path = handle.path().to_str().unwrap().to_string();
+          Task::done(AppMessage::LoadAutosplitter(file_path))
+        }
+        None => Task::none(),
+      }),
+      AppMessage::LoadAutosplitter(path) => {
+        let p = Path::new(&path).to_path_buf();
+        self.autosplitter.load_script_blocking(p).unwrap();
+        Task::none()
+      }
     }
   }
 
   fn view(&self) -> Element<'_, AppMessage> {
-    inject_values_in_lua(&self.lua_context.lua, &self.timer).unwrap();
+    {
+      let timer = self.timer.read().unwrap();
+      inject_values_in_lua(&self.lua_context.lua, &timer).unwrap();
+    }
 
     let inner = if let Some(lcontent) = &self.layout.content {
       lcontent.build().unwrap()
@@ -299,6 +338,7 @@ impl App {
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
       window::resize_events().map(AppMessage::WindowResized),
+      window::close_requests().map(AppMessage::WindowClosing),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
   }
@@ -311,6 +351,7 @@ pub fn run_app() -> iced::Result {
     .subscription(App::subscription)
     .title(App::title)
     .theme(Theme::Dark)
+    .exit_on_close_request(false)
     .run()
 }
 
