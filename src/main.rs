@@ -14,7 +14,7 @@ extern crate log;
 use iced::{
   Background, Color, Element, Length, Size, Subscription, Task, Theme,
   time::every,
-  widget::{button, column, container, space, stack},
+  widget::{button, column, container, space, stack, text},
   window,
 };
 use livesplit_core::{
@@ -77,7 +77,7 @@ pub enum AppMessage {
 
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
-    let hotkey_manager = HotkeyManager::new().unwrap();
+    let hotkey_manager = HotkeyManager::new().expect("couldn't initialize hotkeys");
     let mut hotkeys = HashMap::new();
 
     hotkeys.insert(
@@ -103,7 +103,11 @@ impl App {
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
-    let timer = Timer::new(run).unwrap().into_shared();
+    let timer = Timer::new(run)
+      .expect("couldn't initialize timer")
+      .into_shared();
+    let mut repository = Repository::default();
+    repository.splits_icon.push(None);
 
     let autosplitter = Runtime::new(timer.clone());
 
@@ -128,7 +132,7 @@ impl App {
         lua_context,
 
         layout: Layout::default(),
-        repository: Repository::default(),
+        repository,
 
         timer,
         autosplitter,
@@ -137,17 +141,44 @@ impl App {
     )
   }
 
-  fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+  fn update_handler(&mut self, message: AppMessage) -> Task<AppMessage> {
+    match &message {
+      AppMessage::Update => {}
+      anything => {
+        trace!("action: {:?}", anything);
+      }
+    }
+
+    self.update(message.clone()).unwrap_or_else(|err| {
+      error!(
+        "error occured updating message {:?}: {}",
+        message.clone(),
+        err
+      );
+      Task::none()
+    })
+  }
+
+  fn update(&mut self, message: AppMessage) -> Result<Task<AppMessage>> {
     match message {
       AppMessage::Init(id) => {
         self.window_id = id;
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::Update => {
         if let Some(event) = self.hotkey_manager.try_recv() {
           if let HotkeyState::Pressed = event.state {
-            let mut timer = self.timer.write().unwrap();
-            match self.hotkeys.get(&event.id).unwrap() {
+            let mut timer = self
+              .timer
+              .write()
+              .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
+            match self
+              .hotkeys
+              .get(&event.id)
+              .ok_or(anyhow::Error::msg(format!(
+                "couldn't get hotkey {:?}",
+                &event.id
+              )))? {
               HotkeyAction::StartOrSplitTimer => {
                 timer.split_or_start();
               }
@@ -161,128 +192,157 @@ impl App {
           }
         }
 
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::WindowResized((_id, size)) => {
         self.layout.width = size.width;
         self.layout.height = size.height;
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::WindowClosing(_id) => {
         info!("closing YAST");
-
-        iced::exit()
+        Ok(iced::exit())
       }
-      AppMessage::ResizeTimer(w, h) => window::resize(self.window_id.unwrap(), Size::new(w, h)),
-      AppMessage::LoadSplitsOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("Compatible Splits", &["lss"])
-          .pick_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::LoadSplits(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::ResizeTimer(w, h) => Ok(window::resize(
+        self.window_id.expect("no window id stored in app"),
+        Size::new(w, h),
+      )),
+      AppMessage::LoadSplitsOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("Compatible Splits", &["lss"])
+            .pick_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::LoadSplits(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::LoadSplits(path) => {
         let p = Path::new(&path);
-        let source = fs::read(p).unwrap();
-        let parsed_run = parser::parse_and_fix(&source, Some(p)).unwrap();
-        let timer = Timer::new(parsed_run.run).unwrap();
-        self.repository.update_from_splits(timer.run()).unwrap();
+        let source = fs::read(p)?;
+        let parsed_run = parser::parse_and_fix(&source, Some(p))?;
+        let game_name = parsed_run.run.game_name().to_string();
+        let category_name = parsed_run.run.category_name().to_string();
+        let timer = Timer::new(parsed_run.run)?;
+        self.repository.update_from_splits(timer.run())?;
         self.timer = timer.into_shared();
         self.autosplitter = Runtime::new(self.timer.clone());
-        Task::none()
+        info!("loaded splits: {} - {}", game_name, category_name);
+        Ok(Task::none())
       }
-      AppMessage::SaveSplitsOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("LiveSplit Splits", &["lss"])
-          .save_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::SaveSplits(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::SaveSplitsOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("LiveSplit Splits", &["lss"])
+            .save_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::SaveSplits(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::SaveSplits(path) => {
-        let file = File::create(path).unwrap();
+        let file = File::create(path)?;
         let writer = BufWriter::new(file);
         {
-          let timer = self.timer.read().unwrap();
-          save_timer(&timer, IoWrite(writer)).unwrap();
+          let timer = self
+            .timer
+            .read()
+            .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
+          save_timer(&timer, IoWrite(writer))?;
         }
-        Task::none()
+        info!("saved splits");
+        Ok(Task::none())
       }
-      AppMessage::LoadLayoutOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("YAST Layout", &["yasl"])
-          .pick_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::LoadLayout(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::LoadLayoutOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("YAST Layout", &["yasl"])
+            .pick_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::LoadLayout(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::LoadLayout(path) => {
-        let toml_string = read_to_string(path).unwrap();
+        let toml_string = read_to_string(path)?;
         let new_layout = Layout::load(
           &mut self.repository,
           &self.components,
           &self.lua_context.lua,
           toml_string,
-        )
-        .unwrap();
+        )?;
         let width = new_layout.width;
         let height = new_layout.height;
         self.layout = new_layout;
-        Task::done(AppMessage::ResizeTimer(width, height))
+        info!(
+          "loaded layout: {} by {}",
+          self.layout.name, self.layout.author
+        );
+        Ok(Task::done(AppMessage::ResizeTimer(width, height)))
       }
-      AppMessage::SaveLayoutOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("YAST Layout", &["yasl"])
-          .save_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::SaveLayout(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::SaveLayoutOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("YAST Layout", &["yasl"])
+            .save_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::SaveLayout(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::SaveLayout(path) => {
-        self.layout.save(&path).unwrap();
-        Task::none()
+        self.layout.save(&path)?;
+        info!("saved layout");
+        Ok(Task::none())
       }
-      AppMessage::LoadAutosplitterOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("LiveSplit Autosplitter", &["wasm"])
-          .pick_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::LoadAutosplitter(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::LoadAutosplitterOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("LiveSplit Autosplitter", &["wasm"])
+            .pick_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::LoadAutosplitter(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::LoadAutosplitter(path) => {
         let p = Path::new(&path).to_path_buf();
-        self.autosplitter.load_script_blocking(p).unwrap();
-        Task::none()
+        self.autosplitter.load_script_blocking(p)?;
+        info!("loaded autosplitter");
+        Ok(Task::none())
       }
     }
   }
 
   fn view(&self) -> Element<'_, AppMessage> {
-    {
-      let timer = self.timer.read().unwrap();
-      inject_values_in_lua(&self.lua_context.lua, &timer, &self.repository).unwrap();
+    if let Ok(timer) = self.timer.read() {
+      inject_values_in_lua(&self.lua_context.lua, &timer, &self.repository)
+        .unwrap_or_else(|err| error!("couldn't inject values into lua: {}", err));
     }
 
     let inner = if let Some(lcontent) = &self.layout.content {
@@ -293,7 +353,14 @@ impl App {
           &self.layout.settings,
           &self.repository,
         )
-        .unwrap()
+        .unwrap_or_else(|err| {
+          error!("couldn't build layout: {}", err);
+          text("couldn't build layout, please check the logs for full details")
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center()
+            .into()
+        })
     } else {
       space().width(Length::Fill).height(Length::Fill).into()
     };
@@ -336,7 +403,7 @@ impl App {
     })
     .into();
 
-    stack(vec![
+    let stacked = stack(vec![
       container(space().width(Length::Fill).height(Length::Fill))
         .style(|_| container::Style {
           background: Some(Background::Color(Color::BLACK)),
@@ -345,7 +412,9 @@ impl App {
         .into(),
       context,
     ])
-    .into()
+    .into();
+
+    stacked
   }
 
   fn title(&self) -> String {
@@ -364,7 +433,7 @@ impl App {
 pub fn run_app() -> iced::Result {
   info!("starting YAST prototype {}", PROTOTYPE_VERSION);
 
-  iced::application(App::new, App::update, App::view)
+  iced::application(App::new, App::update_handler, App::view)
     .subscription(App::subscription)
     .title(App::title)
     .theme(Theme::Dark)

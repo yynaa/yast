@@ -94,7 +94,9 @@ impl Component {
     repository: &Repository,
   ) -> Result<Element<'a, M>> {
     if let Some(widget) = &self.widget {
-      let env = widget.environment().unwrap();
+      let env = widget.environment().ok_or(anyhow::Error::msg(
+        "couldn't get environment when building component",
+      ))?;
 
       let pc = path.clone();
       let rc = repository.clone();

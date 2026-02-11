@@ -90,7 +90,7 @@ impl App {
       run.push_segment(Segment::new(&format!("Segment {}", i)));
     }
 
-    let timer = Timer::new(run).unwrap();
+    let timer = Timer::new(run).expect("couldn't create dummy timer");
 
     let mut repository = Repository::default();
     repository.splits_icon.append(&mut vec![None; 10]);
@@ -132,59 +132,82 @@ impl App {
     )
   }
 
-  fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
+  fn update_handler(&mut self, message: AppMessage) -> Task<AppMessage> {
+    trace!("action: {:?}", message.clone());
+
+    self.update(message.clone()).unwrap_or_else(|err| {
+      error!(
+        "error occured updating message {:?}: {}",
+        message.clone(),
+        err
+      );
+      Task::none()
+    })
+  }
+
+  fn update(&mut self, message: AppMessage) -> Result<Task<AppMessage>> {
     match message {
-      AppMessage::LoadLayoutOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("YAST Layout", &["yasl"])
-          .pick_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::LoadLayout(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::LoadLayoutOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("YAST Layout", &["yasl"])
+            .pick_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::LoadLayout(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::LoadLayout(path) => {
-        let toml_string = read_to_string(path).unwrap();
+        let toml_string = read_to_string(path)?;
         let new_layout = Layout::load(
           &mut self.repository,
           &self.components,
           &self.lua_context.lua,
           toml_string,
-        )
-        .unwrap();
+        )?;
         self.layout = new_layout;
-        Task::none()
+        info!(
+          "loaded layout: {} by {}",
+          self.layout.name, self.layout.author
+        );
+        Ok(Task::none())
       }
-      AppMessage::SaveLayoutOpenPicker => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("YAST Layout", &["yasl"])
-          .save_file(),
-      )
-      .then(|handle| match handle {
-        Some(handle) => {
-          let file_path = handle.path().to_str().unwrap().to_string();
-          Task::done(AppMessage::SaveLayout(file_path))
-        }
-        None => Task::none(),
-      }),
+      AppMessage::SaveLayoutOpenPicker => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("YAST Layout", &["yasl"])
+            .save_file(),
+        )
+        .then(|handle| match handle {
+          Some(handle) => {
+            let file_path = handle.path().to_string_lossy().to_string();
+            Task::done(AppMessage::SaveLayout(file_path))
+          }
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::SaveLayout(path) => {
-        self.layout.save(&path).unwrap();
-        Task::none()
+        self.layout.save(&path)?;
+        info!("saved layout");
+        Ok(Task::none())
       }
       AppMessage::TogglePreview => {
         self.preview = !self.preview;
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::LayoutNameChanged(n) => {
         self.layout.name = n;
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::LayoutAuthorChanged(n) => {
         self.layout.author = n;
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::OpenComponent(n) => {
         if let Some(lcontent) = &mut self.layout.content {
@@ -192,7 +215,7 @@ impl App {
           self.new_component_combo_box_selected = None;
           self.parameter_options_combo_box_states.clear();
 
-          let comp = get_mut_component_at_path(lcontent, n).unwrap();
+          let comp = get_mut_component_at_path(lcontent, n)?;
           for p in &comp.parameters.0 {
             if let SettingsFactoryEntryContent::Value(name, value) = &p.content {
               match value {
@@ -207,18 +230,21 @@ impl App {
           }
         }
 
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::NewComponentComboBoxSelected(n) => {
         self.new_component_combo_box_selected = Some(n);
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::AddNewComponent(path, name) => {
         let new_component = Component::from_str(
-          self.components.get(&name).unwrap().clone(),
+          self
+            .components
+            .get(&name)
+            .ok_or(anyhow::Error::msg("couldn't find component in factories"))?
+            .clone(),
           &self.lua_context.lua,
-        )
-        .unwrap();
+        )?;
         let param_defaults = new_component.parameters.initialize_defaults();
         for (param_name, param_value) in &param_defaults {
           match &param_value {
@@ -234,27 +260,27 @@ impl App {
         self.layout.settings.insert(path.clone(), param_defaults);
 
         if let Some(lcontent) = &mut self.layout.content {
-          let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+          let parent = get_mut_component_at_path(lcontent, path.clone())?;
           parent.children.push(new_component);
 
-          Task::none()
+          Ok(Task::none())
         } else {
           self.layout.content = Some(new_component);
-          Task::done(AppMessage::OpenComponent(vec![]))
+          Ok(Task::done(AppMessage::OpenComponent(vec![])))
         }
       }
       AppMessage::DeleteComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
           if path.len() > 0 {
             let last_path_element = path.pop().unwrap();
-            let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+            let parent = get_mut_component_at_path(lcontent, path.clone())?;
             parent.children.remove(last_path_element);
             self.opened_component.pop();
             self.layout.settings.remove(&path);
-            Task::none()
+            Ok(Task::none())
           } else {
             self.layout.content = None;
-            Task::none()
+            Ok(Task::none())
           }
         } else {
           unreachable!()
@@ -262,10 +288,18 @@ impl App {
       }
       AppMessage::MoveComponentUp(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
-          let settings = self.layout.settings.remove(&path).unwrap();
-          let last_path_element = path.pop().unwrap();
+          let settings = self
+            .layout
+            .settings
+            .remove(&path)
+            .ok_or(anyhow::Error::msg(
+              "couldn't find component at path in layout settings",
+            ))?;
+          let last_path_element = path
+            .pop()
+            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
           if last_path_element > 0 {
-            let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+            let parent = get_mut_component_at_path(lcontent, path.clone())?;
             let to_move = parent.children.remove(last_path_element);
             parent.children.insert(last_path_element - 1, to_move);
             self.opened_component = path.clone();
@@ -274,16 +308,24 @@ impl App {
             self.layout.settings.insert(path, settings);
           }
 
-          Task::none()
+          Ok(Task::none())
         } else {
           unreachable!()
         }
       }
       AppMessage::MoveComponentDown(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
-          let settings = self.layout.settings.remove(&path).unwrap();
-          let last_path_element = path.pop().unwrap();
-          let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+          let settings = self
+            .layout
+            .settings
+            .remove(&path)
+            .ok_or(anyhow::Error::msg(
+              "couldn't find component at path in layout settings",
+            ))?;
+          let last_path_element = path
+            .pop()
+            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
+          let parent = get_mut_component_at_path(lcontent, path.clone())?;
           if last_path_element < parent.children.len() - 1 {
             let to_move = parent.children.remove(last_path_element);
             parent.children.insert(last_path_element + 1, to_move);
@@ -293,15 +335,23 @@ impl App {
             self.layout.settings.insert(path, settings);
           }
 
-          Task::none()
+          Ok(Task::none())
         } else {
           unreachable!()
         }
       }
       AppMessage::EnterAboveComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
-          let settings = self.layout.settings.remove(&path).unwrap();
-          let last_path_element = path.pop().unwrap();
+          let settings = self
+            .layout
+            .settings
+            .remove(&path)
+            .ok_or(anyhow::Error::msg(
+              "couldn't find component at path in layout settings",
+            ))?;
+          let last_path_element = path
+            .pop()
+            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
           if last_path_element > 0 {
             let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
             let to_move = parent.children.remove(last_path_element);
@@ -315,7 +365,7 @@ impl App {
             self.layout.settings.insert(path, settings);
           }
 
-          Task::none()
+          Ok(Task::none())
         } else {
           unreachable!()
         }
@@ -323,14 +373,26 @@ impl App {
       AppMessage::ExitParentComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
           if path.len() > 1 {
-            let settings = self.layout.settings.remove(&path).unwrap();
-            let last_path_element = path.pop().unwrap();
-            let second_last_path_element = path.pop().unwrap();
-            let parent_parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+            let settings = self
+              .layout
+              .settings
+              .remove(&path)
+              .ok_or(anyhow::Error::msg(
+                "couldn't find component at path in layout settings",
+              ))?;
+            let last_path_element = path
+              .pop()
+              .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
+            let second_last_path_element = path.pop().ok_or(anyhow::Error::msg(
+              "can't exit children of root component of layout",
+            ))?;
+            let parent_parent = get_mut_component_at_path(lcontent, path.clone())?;
             let myself = parent_parent
               .children
               .get_mut(second_last_path_element)
-              .unwrap()
+              .ok_or(anyhow::Error::msg(
+                "can't find original parent while exiting parent",
+              ))?
               .children
               .remove(last_path_element);
             parent_parent
@@ -342,40 +404,76 @@ impl App {
             self.layout.settings.insert(path, settings);
           }
 
-          Task::none()
+          Ok(Task::none())
         } else {
           unreachable!()
         }
       }
       AppMessage::ModifyParameterBoolean(path, param, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         comp_settings.insert(param, SettingsValue::Boolean(value));
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::ModifyParameterString(path, param, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         comp_settings.insert(param, SettingsValue::String(value));
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::ModifyParameterOptions(path, param, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         comp_settings.insert(param, SettingsValue::Options(value));
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::ModifyParameterNumber(path, param, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         if let Ok(parsed) = value.parse::<f64>() {
           comp_settings.insert(param, SettingsValue::Number(parsed));
         }
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::ModifyParameterNumberRange(path, param, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         comp_settings.insert(param, SettingsValue::NumberRange(value));
-        Task::none()
+        Ok(Task::none())
       }
       AppMessage::ModifyParameterColor(path, param, index, value) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         if let Some(SettingsValue::Color(color)) = comp_settings.get_mut(&param) {
           if let Ok(parsed) = value.parse::<f32>() {
             if parsed <= 255. {
@@ -384,35 +482,44 @@ impl App {
             }
           }
         }
-        Task::none()
+        Ok(Task::none())
       }
-      AppMessage::ModifyParameterImageOpen(path, param) => Task::future(
-        rfd::AsyncFileDialog::new()
-          .add_filter("Image Formats", &["png", "jpg", "jpeg"])
-          .pick_file(),
-      )
-      .then(move |handle| match handle {
-        Some(file_handle) => {
-          let file_path = file_handle.path();
-          match fs::read(file_path) {
-            Ok(bytes) => Task::done(AppMessage::ModifyParameterImageSubmit(
-              path.clone(),
-              param.clone(),
-              bytes,
-            )),
-            Err(_) => Task::none(),
+      AppMessage::ModifyParameterImageOpen(path, param) => {
+        let future = Task::future(
+          rfd::AsyncFileDialog::new()
+            .add_filter("Image Formats", &["png", "jpg", "jpeg"])
+            .pick_file(),
+        )
+        .then(move |handle| match handle {
+          Some(file_handle) => {
+            let file_path = file_handle.path();
+            match fs::read(file_path) {
+              Ok(bytes) => Task::done(AppMessage::ModifyParameterImageSubmit(
+                path.clone(),
+                param.clone(),
+                bytes,
+              )),
+              Err(_) => Task::none(),
+            }
           }
-        }
-        None => Task::none(),
-      }),
+          None => Task::none(),
+        });
+        Ok(future)
+      }
       AppMessage::ModifyParameterImageSubmit(path, param, bytes) => {
-        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        let comp_settings = self
+          .layout
+          .settings
+          .get_mut(&path)
+          .ok_or(anyhow::Error::msg(
+            "couldn't find component in layout from path",
+          ))?;
         comp_settings.insert(param.clone(), SettingsValue::Image(Some(bytes.clone())));
         self
           .repository
           .layout_images
           .insert((path, param), Some(image::Handle::from_bytes(bytes)));
-        Task::none()
+        Ok(Task::none())
       }
     }
   }
@@ -447,7 +554,8 @@ impl App {
     );
 
     if self.preview {
-      inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer, &self.repository).unwrap();
+      inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer, &self.repository)
+        .unwrap_or_else(|err| error!("couldn't inject values into lua: {}", err));
 
       let inner = if let Some(lcontent) = &self.layout.content {
         lcontent
@@ -457,7 +565,14 @@ impl App {
             &self.layout.settings,
             &self.repository,
           )
-          .unwrap()
+          .unwrap_or_else(|err| {
+            error!("couldn't build layout: {}", err);
+            text("couldn't build layout, please check the logs for full details")
+              .width(Length::Fill)
+              .height(Length::Fill)
+              .center()
+              .into()
+          })
       } else {
         space().width(Length::Fill).height(Length::Fill).into()
       };
@@ -492,7 +607,14 @@ impl App {
               self.opened_component.clone(),
               self.opened_component.clone(),
             )
-            .unwrap(),
+            .unwrap_or_else(|err| {
+              error!("couldn't build component editor: {}", err);
+              text("couldn't build component editor, please check the logs for full details")
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center()
+                .into()
+            }),
           ])
           .height(Length::Fill)
           .into(),
@@ -538,7 +660,7 @@ impl App {
 pub fn run_app() -> iced::Result {
   info!("starting YASLE prototype {}", PROTOTYPE_VERSION);
 
-  iced::application(App::new, App::update, App::view)
+  iced::application(App::new, App::update_handler, App::view)
     .title(App::title)
     .theme(Theme::Dark)
     .run()
