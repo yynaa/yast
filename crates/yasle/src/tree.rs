@@ -1,7 +1,7 @@
 use anyhow::Result;
 use iced::{
-  Color, Element, Length, Theme,
   widget::{button, text},
+  Color, Element, Length, Theme,
 };
 use yast_core::layout::component::Component;
 
@@ -14,8 +14,7 @@ pub fn get_mut_component_at_path(
   if path.len() > 0 {
     let popped = path.remove(0);
     let child = p
-      .get_children_mut()
-      .ok_or(anyhow::Error::msg("invalid path (no children)"))?
+      .children
       .get_mut(popped)
       .ok_or(anyhow::Error::msg("invalid path (no such child at index)"))?;
     get_mut_component_at_path(child, path)
@@ -29,7 +28,7 @@ pub fn build_tree_from_layout_part<'a>(
   path: Vec<usize>,
   current_path: &Vec<usize>,
 ) -> Vec<Element<'a, AppMessage>> {
-  let mut name = p.get_name();
+  let mut name = p.name.clone();
   for _ in 0..path.len() {
     name = format!("  {}", name);
   }
@@ -53,13 +52,11 @@ pub fn build_tree_from_layout_part<'a>(
       .into(),
   );
 
-  if let Some(c) = p.get_children() {
-    for (i, b) in c.iter().enumerate() {
-      let mut new_path = path.clone();
-      new_path.push(i);
+  for (i, b) in p.children.iter().enumerate() {
+    let mut new_path = path.clone();
+    new_path.push(i);
 
-      r.append(&mut build_tree_from_layout_part(b, new_path, current_path));
-    }
+    r.append(&mut build_tree_from_layout_part(b, new_path, current_path));
   }
 
   r

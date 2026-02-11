@@ -3,7 +3,7 @@ use iced::Element;
 use mlua::prelude::*;
 
 use crate::{
-  layout::component::Component,
+  layout::{component::Component, settings::LayoutSettings},
   lua::widgets::{
     column::{LuaWidgetColumn, init_lua_widget_column},
     container::{LuaWidgetContainer, init_lua_widget_container},
@@ -56,23 +56,30 @@ impl FromLua for LuaWidget {
 impl LuaUserData for LuaWidget {}
 
 impl LuaWidget {
-  pub fn build<'a, M: 'a>(self, tree: &Component) -> Element<'a, M> {
+  pub fn build<'a, M: 'a>(
+    self,
+    tree: &Component,
+    lua: &Lua,
+    path: Vec<usize>,
+    layout_settings: &LayoutSettings,
+  ) -> Element<'a, M> {
     match self {
       LuaWidget::InternalChild(index) => {
         let child = tree
-          .get_children()
-          .ok_or(anyhow::Error::msg("invalid path (no children)"))
-          .unwrap()
+          .children
           .get(index)
           .ok_or(anyhow::Error::msg("invalid path (no such child at index)"))
           .unwrap();
 
-        child.build().unwrap()
+        let mut new_path = path.clone();
+        new_path.push(index);
+
+        child.build(lua, new_path, layout_settings).unwrap()
       }
-      LuaWidget::Column(inner) => inner.build(tree),
-      LuaWidget::Row(inner) => inner.build(tree),
-      LuaWidget::Stack(inner) => inner.build(tree),
-      LuaWidget::Container(inner) => inner.build(tree),
+      LuaWidget::Column(inner) => inner.build(tree, lua, path, layout_settings),
+      LuaWidget::Row(inner) => inner.build(tree, lua, path, layout_settings),
+      LuaWidget::Stack(inner) => inner.build(tree, lua, path, layout_settings),
+      LuaWidget::Container(inner) => inner.build(tree, lua, path, layout_settings),
       LuaWidget::Image(inner) => inner.build(),
       LuaWidget::Text(inner) => inner.build(),
       LuaWidget::Space(inner) => inner.build(),

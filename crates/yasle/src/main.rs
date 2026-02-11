@@ -1,9 +1,15 @@
 use anyhow::Result;
 use livesplit_core::{Run, Segment, Timer};
 use yast_core::{
-  layout::{Layout, component::Component},
+  layout::{
+    Layout,
+    component::Component,
+    settings::{LayoutSettings, SettingsValue},
+  },
   lua::{
-    LuaContext, inject::inject_values_in_lua, settings::LuaComponentSettingValue,
+    LuaContext,
+    inject::inject_values_in_lua,
+    settings::{SettingsFactoryEntryContent, SettingsFactoryValue},
     widgets::image::ImageHandleLua,
   },
 };
@@ -180,18 +186,16 @@ impl App {
           self.parameter_options_combo_box_states.clear();
 
           let comp = get_mut_component_at_path(lcontent, n).unwrap();
-          for p in &comp.get_parameters().values {
-            match &p.value {
-              LuaComponentSettingValue::Options {
-                value: _,
-                default: _,
-                options,
-              } => {
-                self
-                  .parameter_options_combo_box_states
-                  .insert(p.name.clone(), combo_box::State::new(options.clone()));
+          for p in &comp.parameters.0 {
+            if let SettingsFactoryEntryContent::Value(name, value) = &p.content {
+              match value {
+                SettingsFactoryValue::Options(options, _) => {
+                  self
+                    .parameter_options_combo_box_states
+                    .insert(name.clone(), combo_box::State::new(options.clone()));
+                }
+                _ => {}
               }
-              _ => {}
             }
           }
         }
@@ -204,24 +208,30 @@ impl App {
       }
       AppMessage::AddNewComponent(path, name) => {
         if let Some(lcontent) = &mut self.layout.content {
-          let parent = get_mut_component_at_path(lcontent, path).unwrap();
-          let parent_children = parent.get_children_mut().unwrap();
-          parent_children.push(
-            Component::from_str(
-              self.components.get(&name).unwrap().clone(),
-              &self.lua_context.lua,
-            )
-            .unwrap(),
-          );
+          let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+          let new_component = Component::from_str(
+            self.components.get(&name).unwrap().clone(),
+            &self.lua_context.lua,
+          )
+          .unwrap();
+          self
+            .layout
+            .settings
+            .insert(path, new_component.parameters.initialize_defaults());
+          parent.children.push(new_component);
+
           Task::none()
         } else {
-          self.layout.content = Some(
-            Component::from_str(
-              self.components.get(&name).unwrap().clone(),
-              &self.lua_context.lua,
-            )
-            .unwrap(),
-          );
+          let new_component = Component::from_str(
+            self.components.get(&name).unwrap().clone(),
+            &self.lua_context.lua,
+          )
+          .unwrap();
+          self
+            .layout
+            .settings
+            .insert(vec![], new_component.parameters.initialize_defaults());
+          self.layout.content = Some(new_component);
           Task::done(AppMessage::OpenComponent(vec![]))
         }
       }
@@ -229,9 +239,10 @@ impl App {
         if let Some(lcontent) = &mut self.layout.content {
           if path.len() > 0 {
             let last_path_element = path.pop().unwrap();
-            let parent = get_mut_component_at_path(lcontent, path).unwrap();
-            parent.get_children_mut().unwrap().remove(last_path_element);
+            let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
+            parent.children.remove(last_path_element);
             self.opened_component.pop();
+            self.layout.settings.remove(&path);
             Task::none()
           } else {
             self.layout.content = None;
@@ -243,14 +254,16 @@ impl App {
       }
       AppMessage::MoveComponentUp(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
+          let settings = self.layout.settings.remove(&path).unwrap();
           let last_path_element = path.pop().unwrap();
           if last_path_element > 0 {
             let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-            let parent_children = parent.get_children_mut().unwrap();
-            let to_move = parent_children.remove(last_path_element);
-            parent_children.insert(last_path_element - 1, to_move);
+            let to_move = parent.children.remove(last_path_element);
+            parent.children.insert(last_path_element - 1, to_move);
             self.opened_component = path.clone();
             self.opened_component.push(last_path_element - 1);
+            path.push(last_path_element - 1);
+            self.layout.settings.insert(path, settings);
           }
 
           Task::none()
@@ -260,14 +273,16 @@ impl App {
       }
       AppMessage::MoveComponentDown(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
+          let settings = self.layout.settings.remove(&path).unwrap();
           let last_path_element = path.pop().unwrap();
           let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-          let parent_children = parent.get_children_mut().unwrap();
-          if last_path_element < parent_children.len() - 1 {
-            let to_move = parent_children.remove(last_path_element);
-            parent_children.insert(last_path_element + 1, to_move);
+          if last_path_element < parent.children.len() - 1 {
+            let to_move = parent.children.remove(last_path_element);
+            parent.children.insert(last_path_element + 1, to_move);
             self.opened_component = path.clone();
             self.opened_component.push(last_path_element + 1);
+            path.push(last_path_element + 1);
+            self.layout.settings.insert(path, settings);
           }
 
           Task::none()
@@ -277,17 +292,19 @@ impl App {
       }
       AppMessage::EnterAboveComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
+          let settings = self.layout.settings.remove(&path).unwrap();
           let last_path_element = path.pop().unwrap();
           if last_path_element > 0 {
             let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-            let parent_children = parent.get_children_mut().unwrap();
-            let to_move = parent_children.remove(last_path_element);
-            let new_parent = parent_children.get_mut(last_path_element - 1).unwrap();
-            let new_parent_children = new_parent.get_children_mut().unwrap();
-            new_parent_children.push(to_move);
+            let to_move = parent.children.remove(last_path_element);
+            let new_parent = parent.children.get_mut(last_path_element - 1).unwrap();
+            new_parent.children.push(to_move);
             self.opened_component = path.clone();
             self.opened_component.push(last_path_element - 1);
-            self.opened_component.push(new_parent_children.len() - 1);
+            self.opened_component.push(new_parent.children.len() - 1);
+            path.push(last_path_element - 1);
+            path.push(new_parent.children.len() - 1);
+            self.layout.settings.insert(path, settings);
           }
 
           Task::none()
@@ -298,19 +315,23 @@ impl App {
       AppMessage::ExitParentComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
           if path.len() > 1 {
+            let settings = self.layout.settings.remove(&path).unwrap();
             let last_path_element = path.pop().unwrap();
             let second_last_path_element = path.pop().unwrap();
             let parent_parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-            let parent_parent_children = parent_parent.get_children_mut().unwrap();
-            let myself = parent_parent_children
+            let myself = parent_parent
+              .children
               .get_mut(second_last_path_element)
               .unwrap()
-              .get_children_mut()
-              .unwrap()
+              .children
               .remove(last_path_element);
-            parent_parent_children.insert(second_last_path_element, myself.clone());
+            parent_parent
+              .children
+              .insert(second_last_path_element, myself.clone());
             self.opened_component = path.clone();
             self.opened_component.push(second_last_path_element);
+            path.push(second_last_path_element);
+            self.layout.settings.insert(path, settings);
           }
 
           Task::none()
@@ -319,168 +340,43 @@ impl App {
         }
       }
       AppMessage::ModifyParameterBoolean(path, param, value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::Boolean { value: _, default } => {
-              to_edit.value = LuaComponentSettingValue::Boolean {
-                value,
-                default: *default,
-              };
-            }
-            _ => panic!("invalid value"),
-          };
-          Task::none()
-        } else {
-          unreachable!()
-        }
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        comp_settings.insert(param, SettingsValue::Boolean(value));
+        Task::none()
       }
       AppMessage::ModifyParameterString(path, param, value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::String { value: _, default } => {
-              to_edit.value = LuaComponentSettingValue::String {
-                value,
-                default: default.clone(),
-              };
-            }
-            _ => panic!("invalid value"),
-          };
-          Task::none()
-        } else {
-          unreachable!()
-        }
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        comp_settings.insert(param, SettingsValue::String(value));
+        Task::none()
       }
       AppMessage::ModifyParameterOptions(path, param, value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::Options {
-              value: _,
-              default,
-              options: _,
-            } => {
-              to_edit.value = LuaComponentSettingValue::Options {
-                value,
-                default: default.clone(),
-                options: match &to_edit.value {
-                  LuaComponentSettingValue::Options { options, .. } => options.clone(),
-                  _ => panic!("invalid value"),
-                },
-              };
-            }
-            _ => panic!("invalid value"),
-          };
-          Task::none()
-        } else {
-          unreachable!()
-        }
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        comp_settings.insert(param, SettingsValue::Options(value));
+        Task::none()
       }
       AppMessage::ModifyParameterNumber(path, param, value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          if let Ok(value_f64) = value.parse::<f64>() {
-            let component = get_mut_component_at_path(lcontent, path).unwrap();
-            let parameters = component.get_parameters_mut();
-            let to_edit = parameters
-              .values
-              .iter_mut()
-              .find(|v| v.name == param)
-              .unwrap();
-            match &to_edit.value {
-              LuaComponentSettingValue::Number { value: _, default } => {
-                to_edit.value = LuaComponentSettingValue::Number {
-                  value: value_f64,
-                  default: *default,
-                };
-              }
-              _ => panic!("invalid value"),
-            };
-          }
-          Task::none()
-        } else {
-          unreachable!()
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        if let Ok(parsed) = value.parse::<f64>() {
+          comp_settings.insert(param, SettingsValue::Number(parsed));
         }
+        Task::none()
       }
       AppMessage::ModifyParameterNumberRange(path, param, value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::NumberRange {
-              value: _,
-              default,
-              min,
-              max,
-              step,
-            } => {
-              to_edit.value = LuaComponentSettingValue::NumberRange {
-                value,
-                default: *default,
-                min: *min,
-                max: *max,
-                step: *step,
-              };
-            }
-            _ => panic!("invalid value"),
-          };
-          Task::none()
-        } else {
-          unreachable!()
-        }
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        comp_settings.insert(param, SettingsValue::NumberRange(value));
+        Task::none()
       }
-      AppMessage::ModifyParameterColor(path, param, col, col_value) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          if let Ok(col_value_f32) = col_value.parse::<f32>() {
-            if col_value_f32 < 256. {
-              let component = get_mut_component_at_path(lcontent, path).unwrap();
-              let parameters = component.get_parameters_mut();
-              let to_edit = parameters
-                .values
-                .iter_mut()
-                .find(|v| v.name == param)
-                .unwrap();
-              match &to_edit.value {
-                LuaComponentSettingValue::Color { value, default } => {
-                  let mut new_value = value.clone();
-                  new_value[col] = col_value_f32 / 255.;
-
-                  to_edit.value = LuaComponentSettingValue::Color {
-                    value: new_value,
-                    default: *default,
-                  };
-                }
-                _ => panic!("invalid value"),
-              };
+      AppMessage::ModifyParameterColor(path, param, index, value) => {
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        if let Some(SettingsValue::Color(color)) = comp_settings.get_mut(&param) {
+          if let Ok(parsed) = value.parse::<f32>() {
+            if parsed <= 255. {
+              let channel_index = index.min(3);
+              color[channel_index] = parsed / 255.;
             }
           }
-          Task::none()
-        } else {
-          unreachable!()
         }
+        Task::none()
       }
       AppMessage::ModifyParameterImageOpen(path, param) => Task::future(
         rfd::AsyncFileDialog::new()
@@ -502,30 +398,9 @@ impl App {
         None => Task::none(),
       }),
       AppMessage::ModifyParameterImageSubmit(path, param, bytes) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let component = get_mut_component_at_path(lcontent, path).unwrap();
-          let parameters = component.get_parameters_mut();
-          let to_edit = parameters
-            .values
-            .iter_mut()
-            .find(|v| v.name == param)
-            .unwrap();
-          match &to_edit.value {
-            LuaComponentSettingValue::Image {
-              bytes: _,
-              handle: _,
-            } => {
-              to_edit.value = LuaComponentSettingValue::Image {
-                bytes: Some(bytes.clone()),
-                handle: Some(ImageHandleLua(image::Handle::from_bytes(bytes))),
-              };
-            }
-            _ => panic!("invalid value"),
-          };
-          Task::none()
-        } else {
-          unreachable!()
-        }
+        let comp_settings = self.layout.settings.get_mut(&path).unwrap();
+        comp_settings.insert(param, SettingsValue::Image(Some(bytes)));
+        Task::none()
       }
     }
   }
@@ -563,7 +438,9 @@ impl App {
       inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer).unwrap();
 
       let inner = if let Some(lcontent) = &self.layout.content {
-        lcontent.build().unwrap()
+        lcontent
+          .build(&self.lua_context.lua, vec![], &self.layout.settings)
+          .unwrap()
       } else {
         space().width(Length::Fill).height(Length::Fill).into()
       };

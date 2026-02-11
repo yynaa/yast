@@ -276,7 +276,9 @@ impl App {
     }
 
     let inner = if let Some(lcontent) = &self.layout.content {
-      lcontent.build().unwrap()
+      lcontent
+        .build(&self.lua_context.lua, vec![], &self.layout.settings)
+        .unwrap()
     } else {
       space().width(Length::Fill).height(Length::Fill).into()
     };

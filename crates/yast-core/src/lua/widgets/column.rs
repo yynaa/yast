@@ -1,7 +1,10 @@
 use iced::{Element, Length, Padding, Pixels, alignment::Horizontal, widget::column};
 use mlua::prelude::*;
 
-use crate::{layout::component::Component, lua::widgets::LuaWidget};
+use crate::{
+  layout::{component::Component, settings::LayoutSettings},
+  lua::widgets::LuaWidget,
+};
 
 #[derive(Clone)]
 pub struct LuaWidgetColumn {
@@ -27,11 +30,17 @@ impl LuaWidgetColumn {
     }
   }
 
-  pub fn build<'a, M: 'a>(self, tree: &Component) -> Element<'a, M> {
+  pub fn build<'a, M: 'a>(
+    self,
+    tree: &Component,
+    lua: &Lua,
+    path: Vec<usize>,
+    layout_settings: &LayoutSettings,
+  ) -> Element<'a, M> {
     let inner_built = self
       .inner
       .iter()
-      .map(|e| e.clone().build(tree))
+      .map(|e| e.clone().build(tree, lua, path.clone(), layout_settings))
       .collect::<Vec<Element<'a, M>>>();
 
     let mut c = column(inner_built);

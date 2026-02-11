@@ -1,17 +1,23 @@
---- @class settings
---- @field get fun(self: settings, param_name: string): any
---- @field plugin fun(self: settings, plugin: fun(s: settings): settings): settings
---- @field boolean fun(self: settings, param_name: string, default: boolean): settings
---- @field string fun(self: settings, param_name: string, default: string): settings
---- @field options fun(self: settings, param_name: string, default: string, options: string[]): settings
---- @field number fun(self: settings, param_name: string, default: number): settings
---- @field number_range fun(self: settings, param_name: string, default: number, min: number, max: number, step: number): settings
---- @field color fun(self: settings, param_name: string, default_r: number, default_g: number, default_b: number, default_a: number): settings
---- @field image fun(self: settings, param_name: string): settings
-settings = {}
+--- @alias show_if (fun(s: settings): boolean)|nil
 
---- @return settings
-function build_settings() end
+--- @class settings_factory
+--- @field plugin fun(self: settings_factory, plugin: fun(s: settings_factory): settings_factory): settings_factory
+--- @field header fun(self: settings_factory, title: string, show_if: show_if): settings_factory
+--- @field boolean fun(self: settings_factory, name: string, default: boolean, show_if: show_if): settings_factory
+--- @field string fun(self: settings_factory, name: string, default: string, show_if: show_if): settings_factory
+--- @field options fun(self: settings_factory, name: string, options: string[], default: string, show_if: show_if): settings_factory
+--- @field number fun(self: settings_factory, name: string, default: number, show_if: show_if): settings_factory
+--- @field number_range fun(self: settings_factory, name: string, min: number, max: number, step: number, default: number, show_if: show_if): settings_factory
+--- @field color fun(self: settings_factory, name: string, r: number, g: number, b: number, a: number, show_if: show_if): settings_factory
+--- @field image fun(self: settings_factory, name: string, show_if: show_if): settings_factory
+
+--- @return settings_factory
+function settings_factory() end
+
+--- @alias settings fun(name: string): any
+--- @return any
+--- @param name string
+function settings(name) end
 
 --- @class snapshot_current_time
 --- @field real_time number

@@ -5,7 +5,10 @@ use iced::{
 };
 use mlua::prelude::*;
 
-use crate::{layout::component::Component, lua::widgets::LuaWidget};
+use crate::{
+  layout::{component::Component, settings::LayoutSettings},
+  lua::widgets::LuaWidget,
+};
 
 #[derive(Clone)]
 pub struct LuaWidgetContainer {
@@ -33,8 +36,14 @@ impl LuaWidgetContainer {
     }
   }
 
-  pub fn build<'a, M: 'a>(self, tree: &Component) -> Element<'a, M> {
-    let inner_built = self.inner.build(tree);
+  pub fn build<'a, M: 'a>(
+    self,
+    tree: &Component,
+    lua: &Lua,
+    path: Vec<usize>,
+    layout_settings: &LayoutSettings,
+  ) -> Element<'a, M> {
+    let inner_built = self.inner.build(tree, lua, path.clone(), layout_settings);
 
     let mut c = container(inner_built);
 

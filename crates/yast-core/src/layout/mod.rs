@@ -3,9 +3,10 @@ use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
-use crate::layout::component::Component;
+use crate::layout::{component::Component, settings::LayoutSettings};
 
 pub mod component;
+pub mod settings;
 
 #[derive(Serialize, Deserialize)]
 pub struct Layout {
@@ -13,6 +14,7 @@ pub struct Layout {
   pub author: String,
   pub content: Option<Component>,
 
+  pub settings: LayoutSettings,
   pub width: f32,
   pub height: f32,
 }
@@ -42,6 +44,7 @@ impl Default for Layout {
       author: String::new(),
       content: None,
 
+      settings: HashMap::new(),
       width: 200.,
       height: 500.,
     }
