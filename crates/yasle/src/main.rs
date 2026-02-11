@@ -12,6 +12,7 @@ use yast_core::{
     settings::{SettingsFactoryEntryContent, SettingsFactoryValue},
     widgets::image::ImageHandleLua,
   },
+  repository::Repository,
 };
 
 extern crate pretty_env_logger;
@@ -40,6 +41,8 @@ pub struct App {
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
+  pub repository: Repository,
+
   pub dummy_timer: Timer,
 
   pub preview: bool,
@@ -118,6 +121,7 @@ impl App {
         components,
         lua_context,
         layout: Layout::default(),
+        repository: Repository::default(),
         dummy_timer: timer,
 
         preview: false,
@@ -146,8 +150,13 @@ impl App {
       }),
       AppMessage::LoadLayout(path) => {
         let toml_string = read_to_string(path).unwrap();
-        let new_layout =
-          Layout::load(&self.components, &self.lua_context.lua, toml_string).unwrap();
+        let new_layout = Layout::load(
+          &mut self.repository,
+          &self.components,
+          &self.lua_context.lua,
+          toml_string,
+        )
+        .unwrap();
         self.layout = new_layout;
         Task::none()
       }
@@ -207,30 +216,31 @@ impl App {
         Task::none()
       }
       AppMessage::AddNewComponent(path, name) => {
+        let new_component = Component::from_str(
+          self.components.get(&name).unwrap().clone(),
+          &self.lua_context.lua,
+        )
+        .unwrap();
+        let param_defaults = new_component.parameters.initialize_defaults();
+        for (param_name, param_value) in &param_defaults {
+          match &param_value {
+            SettingsValue::Image(_) => {
+              self
+                .repository
+                .layout_images
+                .insert((path.clone(), param_name.clone()), None);
+            }
+            _ => {}
+          }
+        }
+        self.layout.settings.insert(path.clone(), param_defaults);
+
         if let Some(lcontent) = &mut self.layout.content {
           let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-          let new_component = Component::from_str(
-            self.components.get(&name).unwrap().clone(),
-            &self.lua_context.lua,
-          )
-          .unwrap();
-          self
-            .layout
-            .settings
-            .insert(path, new_component.parameters.initialize_defaults());
           parent.children.push(new_component);
 
           Task::none()
         } else {
-          let new_component = Component::from_str(
-            self.components.get(&name).unwrap().clone(),
-            &self.lua_context.lua,
-          )
-          .unwrap();
-          self
-            .layout
-            .settings
-            .insert(vec![], new_component.parameters.initialize_defaults());
           self.layout.content = Some(new_component);
           Task::done(AppMessage::OpenComponent(vec![]))
         }
@@ -399,7 +409,11 @@ impl App {
       }),
       AppMessage::ModifyParameterImageSubmit(path, param, bytes) => {
         let comp_settings = self.layout.settings.get_mut(&path).unwrap();
-        comp_settings.insert(param, SettingsValue::Image(Some(bytes)));
+        comp_settings.insert(param.clone(), SettingsValue::Image(Some(bytes.clone())));
+        self
+          .repository
+          .layout_images
+          .insert((path, param), Some(image::Handle::from_bytes(bytes)));
         Task::none()
       }
     }
@@ -439,7 +453,12 @@ impl App {
 
       let inner = if let Some(lcontent) = &self.layout.content {
         lcontent
-          .build(&self.lua_context.lua, vec![], &self.layout.settings)
+          .build(
+            &self.lua_context.lua,
+            vec![],
+            &self.layout.settings,
+            &self.repository,
+          )
           .unwrap()
       } else {
         space().width(Length::Fill).height(Length::Fill).into()

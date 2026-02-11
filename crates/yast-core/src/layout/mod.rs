@@ -1,9 +1,16 @@
 use anyhow::Result;
+use iced::advanced::image;
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
 
-use crate::layout::{component::Component, settings::LayoutSettings};
+use crate::{
+  layout::{
+    component::Component,
+    settings::{LayoutSettings, SettingsValue},
+  },
+  repository::Repository,
+};
 
 pub mod component;
 pub mod settings;
@@ -20,11 +27,30 @@ pub struct Layout {
 }
 
 impl Layout {
-  pub fn load(components: &HashMap<String, String>, lua: &Lua, content: String) -> Result<Self> {
+  pub fn load(
+    repository: &mut Repository,
+    components: &HashMap<String, String>,
+    lua: &Lua,
+    content: String,
+  ) -> Result<Self> {
     let mut layout = toml::from_str::<Self>(&content)?;
 
+    for (comp_path, comp_parameters) in &layout.settings {
+      for (param_name, param_value) in comp_parameters {
+        match param_value {
+          SettingsValue::Image(b) => {
+            repository.layout_images.insert(
+              (comp_path.clone(), param_name.clone()),
+              b.clone().map(|bb| image::Handle::from_bytes(bb)),
+            );
+          }
+          _ => {}
+        }
+      }
+    }
+
     if let Some(root) = &mut layout.content {
-      root.load(components, lua)?
+      root.load(repository, components, lua)?
     }
 
     Ok(layout)

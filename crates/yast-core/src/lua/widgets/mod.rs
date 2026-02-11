@@ -14,6 +14,7 @@ use crate::{
     stack::{LuaWidgetStack, init_lua_widget_stack},
     text::{LuaWidgetText, init_lua_widget_text},
   },
+  repository::Repository,
 };
 
 pub mod column;
@@ -62,6 +63,7 @@ impl LuaWidget {
     lua: &Lua,
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
+    repository: &Repository,
   ) -> Element<'a, M> {
     match self {
       LuaWidget::InternalChild(index) => {
@@ -74,12 +76,14 @@ impl LuaWidget {
         let mut new_path = path.clone();
         new_path.push(index);
 
-        child.build(lua, new_path, layout_settings).unwrap()
+        child
+          .build(lua, new_path, layout_settings, repository)
+          .unwrap()
       }
-      LuaWidget::Column(inner) => inner.build(tree, lua, path, layout_settings),
-      LuaWidget::Row(inner) => inner.build(tree, lua, path, layout_settings),
-      LuaWidget::Stack(inner) => inner.build(tree, lua, path, layout_settings),
-      LuaWidget::Container(inner) => inner.build(tree, lua, path, layout_settings),
+      LuaWidget::Column(inner) => inner.build(tree, lua, path, layout_settings, repository),
+      LuaWidget::Row(inner) => inner.build(tree, lua, path, layout_settings, repository),
+      LuaWidget::Stack(inner) => inner.build(tree, lua, path, layout_settings, repository),
+      LuaWidget::Container(inner) => inner.build(tree, lua, path, layout_settings, repository),
       LuaWidget::Image(inner) => inner.build(),
       LuaWidget::Text(inner) => inner.build(),
       LuaWidget::Space(inner) => inner.build(),

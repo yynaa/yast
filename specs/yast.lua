@@ -17,7 +17,7 @@ function settings_factory() end
 --- @alias settings fun(name: string): any
 --- @return any
 --- @param name string
-function settings(name) end
+function setting(name) end
 
 --- @class snapshot_current_time
 --- @field real_time number

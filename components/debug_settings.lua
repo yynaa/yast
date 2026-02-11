@@ -16,6 +16,11 @@ return {
     end,
   ["widget"] =
     function()
+      local img = setting("background")
+      
+      if img then
+        return widgets.image(img):width("fill"):height("fill"):into()
+      end
       return widgets.space():into()
     end
 }

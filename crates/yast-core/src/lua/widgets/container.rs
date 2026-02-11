@@ -8,6 +8,7 @@ use mlua::prelude::*;
 use crate::{
   layout::{component::Component, settings::LayoutSettings},
   lua::widgets::LuaWidget,
+  repository::Repository,
 };
 
 #[derive(Clone)]
@@ -42,8 +43,11 @@ impl LuaWidgetContainer {
     lua: &Lua,
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
+    repository: &Repository,
   ) -> Element<'a, M> {
-    let inner_built = self.inner.build(tree, lua, path.clone(), layout_settings);
+    let inner_built = self
+      .inner
+      .build(tree, lua, path.clone(), layout_settings, repository);
 
     let mut c = container(inner_built);
 

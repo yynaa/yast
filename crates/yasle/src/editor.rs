@@ -1,8 +1,8 @@
 use anyhow::Result;
 use iced::{
+  Alignment, Element, Length, Pixels,
   alignment::Vertical,
   widget::{button, checkbox, column, combo_box, image, row, slider, space, text, text_input},
-  Alignment, Element, Length, Pixels,
 };
 use yast_core::{
   layout::{component::Component, settings::SettingsValue},
@@ -109,13 +109,15 @@ pub fn component_editor<'a>(
     if let Some(comp_parameters) = state.layout.settings.get(&full_path) {
       let cpc = comp_parameters.clone();
       let lc = state.lua_context.lua.clone();
+      let rc = state.repository.clone();
+      let fpc = full_path.clone();
       let lua_setting_function =
         state
           .lua_context
           .lua
           .create_function(move |_, name: String| {
             if let Some(value) = cpc.get(&name) {
-              Ok(value.inner(&lc))
+              Ok(value.inner(&lc, &rc, fpc.clone(), name))
             } else {
               Err(mlua::Error::external(anyhow::Error::msg(format!(
                 "couldn't find setting {} in component",
@@ -331,7 +333,7 @@ pub fn component_editor<'a>(
                     );
                   }
                   SettingsValue::Image(_) => {
-                    let row_vec = vec![
+                    let mut row_vec = vec![
                       text(format!("{}", name)).into(),
                       space().width(Length::Fixed(5.0)).into(),
                       button("Open Image")
@@ -341,6 +343,20 @@ pub fn component_editor<'a>(
                         ))
                         .into(),
                     ];
+
+                    if let Some(h) = state
+                      .repository
+                      .layout_images
+                      .get(&(full_path.clone(), name.clone()))
+                      .ok_or(anyhow::Error::msg("couldn't find image in repository"))?
+                    {
+                      row_vec.push(
+                        image(h)
+                          .width(Length::Fixed(100.))
+                          .height(Length::Fixed(100.))
+                          .into(),
+                      );
+                    }
 
                     column_vec.push(row(row_vec).align_y(Vertical::Center).into());
                   }

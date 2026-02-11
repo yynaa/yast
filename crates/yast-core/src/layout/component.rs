@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
   layout::settings::LayoutSettings,
   lua::{settings::SettingsFactory, widgets::LuaWidget},
+  repository::Repository,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -42,7 +43,12 @@ impl Component {
     Ok(r)
   }
 
-  pub fn load(&mut self, components: &HashMap<String, String>, lua: &Lua) -> Result<()> {
+  pub fn load(
+    &mut self,
+    repository: &mut Repository,
+    components: &HashMap<String, String>,
+    lua: &Lua,
+  ) -> Result<()> {
     let template = Self::from_str(
       components
         .get(&self.name)
@@ -55,7 +61,7 @@ impl Component {
     self.parameters = template.parameters;
 
     for child in &mut self.children {
-      child.load(components, lua)?;
+      child.load(repository, components, lua)?;
     }
 
     Ok(())
@@ -85,11 +91,13 @@ impl Component {
     lua: &Lua,
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
+    repository: &Repository,
   ) -> Result<Element<'a, M>> {
     if let Some(widget) = &self.widget {
       let env = widget.environment().unwrap();
 
       let pc = path.clone();
+      let rc = repository.clone();
       let lsc = layout_settings.clone();
       let lc = lua.clone();
       let setting = lua.create_function(move |_, name: String| {
@@ -97,7 +105,7 @@ impl Component {
 
         if let Some(a) = lsc.get(&pc.clone()) {
           if let Some(b) = a.get(&name) {
-            Ok(b.inner(&lc))
+            Ok(b.inner(&lc, &rc, pc.clone(), name.clone()))
           } else {
             Err(LuaError::external(anyhow::Error::msg(
               "can't find setting in layout settings",
@@ -119,7 +127,7 @@ impl Component {
 
       let e = widget
         .call::<LuaWidget>(())?
-        .build(&self, lua, path, layout_settings);
+        .build(&self, lua, path, layout_settings, repository);
       Ok(e)
     } else {
       Err(anyhow::Error::msg(

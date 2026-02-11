@@ -4,6 +4,7 @@ use iced_aw::ContextMenu;
 use yast_core::{
   layout::{Layout, component::Component},
   lua::{LuaContext, inject::inject_values_in_lua},
+  repository::Repository,
 };
 
 extern crate pretty_env_logger;
@@ -47,6 +48,7 @@ pub struct App {
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
+  repository: Repository,
   pub timer: SharedTimer,
   #[allow(unused)]
   autosplitter: Runtime,
@@ -126,6 +128,7 @@ impl App {
         lua_context,
 
         layout: Layout::default(),
+        repository: Repository::default(),
 
         timer,
         autosplitter,
@@ -277,7 +280,12 @@ impl App {
 
     let inner = if let Some(lcontent) = &self.layout.content {
       lcontent
-        .build(&self.lua_context.lua, vec![], &self.layout.settings)
+        .build(
+          &self.lua_context.lua,
+          vec![],
+          &self.layout.settings,
+          &self.repository,
+        )
         .unwrap()
     } else {
       space().width(Length::Fill).height(Length::Fill).into()
