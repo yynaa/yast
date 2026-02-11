@@ -193,7 +193,7 @@ pub fn component_editor<'a>(
                     );
                   }
                   SettingsValue::Options(value) => {
-                    if let SettingsFactoryValue::Options(options, _) = factory_value {
+                    if let SettingsFactoryValue::Options(_, _) = factory_value {
                       if let Some(st) = state.parameter_options_combo_box_states.get(name) {
                         let moved_name = name.clone();
                         let moved_full_path = full_path.clone();

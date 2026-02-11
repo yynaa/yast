@@ -1,16 +1,11 @@
 use anyhow::Result;
 use livesplit_core::{Run, Segment, Timer};
 use yast_core::{
-  layout::{
-    Layout,
-    component::Component,
-    settings::{LayoutSettings, SettingsValue},
-  },
+  layout::{Layout, component::Component, settings::SettingsValue},
   lua::{
     LuaContext,
     inject::inject_values_in_lua,
     settings::{SettingsFactoryEntryContent, SettingsFactoryValue},
-    widgets::image::ImageHandleLua,
   },
   repository::Repository,
 };

@@ -229,8 +229,13 @@ impl App {
       }),
       AppMessage::LoadLayout(path) => {
         let toml_string = read_to_string(path).unwrap();
-        let new_layout =
-          Layout::load(&self.components, &self.lua_context.lua, toml_string).unwrap();
+        let new_layout = Layout::load(
+          &mut self.repository,
+          &self.components,
+          &self.lua_context.lua,
+          toml_string,
+        )
+        .unwrap();
         let width = new_layout.width;
         let height = new_layout.height;
         self.layout = new_layout;
