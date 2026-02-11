@@ -10,7 +10,6 @@ use yast_core::{
   repository::Repository,
 };
 
-extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
@@ -25,6 +24,7 @@ use iced::{
 use std::{
   collections::HashMap,
   fs::{self, read_to_string},
+  time::SystemTime,
 };
 
 pub mod editor;
@@ -667,7 +667,21 @@ pub fn run_app() -> iced::Result {
 }
 
 fn main() -> Result<()> {
-  pretty_env_logger::init_timed();
+  fern::Dispatch::new()
+    .level(log::LevelFilter::Warn)
+    .level_for("yasle", log::LevelFilter::Info)
+    .format(move |out, message, record| {
+      out.finish(format_args!(
+        "[{} || {}] {} » {}",
+        humantime::format_rfc3339_seconds(SystemTime::now()),
+        record.level(),
+        record.target(),
+        message
+      ))
+    })
+    .chain(std::io::stdout())
+    .chain(fern::log_file("yasle.log")?)
+    .apply()?;
 
   run_app()?;
 

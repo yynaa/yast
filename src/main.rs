@@ -1,4 +1,5 @@
 use anyhow::Result;
+use fern::colors::ColoredLevelConfig;
 use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, Key, Modifiers};
 use iced_aw::ContextMenu;
 use yast_core::{
@@ -7,7 +8,6 @@ use yast_core::{
   repository::Repository,
 };
 
-extern crate pretty_env_logger;
 #[macro_use]
 extern crate log;
 
@@ -30,7 +30,7 @@ use std::{
   fs::{self, File, read_to_string},
   io::BufWriter,
   path::Path,
-  time::Duration,
+  time::{Duration, SystemTime},
 };
 
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
@@ -456,7 +456,21 @@ fn is_ready() -> Result<bool> {
 }
 
 fn main() -> Result<()> {
-  pretty_env_logger::init_timed();
+  fern::Dispatch::new()
+    .level(log::LevelFilter::Warn)
+    .level_for("yast", log::LevelFilter::Info)
+    .format(move |out, message, record| {
+      out.finish(format_args!(
+        "[{} || {}] {} » {}",
+        humantime::format_rfc3339_seconds(SystemTime::now()),
+        record.level(),
+        record.target(),
+        message
+      ))
+    })
+    .chain(std::io::stdout())
+    .chain(fern::log_file("yast.log")?)
+    .apply()?;
 
   if is_ready()? {
     run_app()?;

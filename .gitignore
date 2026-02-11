@@ -3,3 +3,4 @@
 **/*.yasl
 **/*.lss
 prototype/**
+**/*.log
