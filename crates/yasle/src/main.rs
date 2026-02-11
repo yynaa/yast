@@ -92,6 +92,9 @@ impl App {
 
     let timer = Timer::new(run).unwrap();
 
+    let mut repository = Repository::default();
+    repository.splits_icon.append(&mut vec![None; 10]);
+
     let lua_context = LuaContext::init().expect("couldn't initialize lua context");
 
     let mut components_dir = dirs::data_dir().expect("couldn't get data directory");
@@ -116,7 +119,7 @@ impl App {
         components,
         lua_context,
         layout: Layout::default(),
-        repository: Repository::default(),
+        repository,
         dummy_timer: timer,
 
         preview: false,
@@ -444,7 +447,7 @@ impl App {
     );
 
     if self.preview {
-      inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer).unwrap();
+      inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer, &self.repository).unwrap();
 
       let inner = if let Some(lcontent) = &self.layout.content {
         lcontent

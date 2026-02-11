@@ -190,7 +190,9 @@ impl App {
         let p = Path::new(&path);
         let source = fs::read(p).unwrap();
         let parsed_run = parser::parse_and_fix(&source, Some(p)).unwrap();
-        self.timer = Timer::new(parsed_run.run).unwrap().into_shared();
+        let timer = Timer::new(parsed_run.run).unwrap();
+        self.repository.update_from_splits(timer.run()).unwrap();
+        self.timer = timer.into_shared();
         self.autosplitter = Runtime::new(self.timer.clone());
         Task::none()
       }
@@ -280,7 +282,7 @@ impl App {
   fn view(&self) -> Element<'_, AppMessage> {
     {
       let timer = self.timer.read().unwrap();
-      inject_values_in_lua(&self.lua_context.lua, &timer).unwrap();
+      inject_values_in_lua(&self.lua_context.lua, &timer, &self.repository).unwrap();
     }
 
     let inner = if let Some(lcontent) = &self.layout.content {

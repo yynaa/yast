@@ -2,7 +2,9 @@ use anyhow::Result;
 use livesplit_core::{Timer, analysis};
 use mlua::prelude::*;
 
-pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
+use crate::{lua::widgets::image::ImageHandleLua, repository::Repository};
+
+pub fn inject_values_in_lua(lua: &Lua, timer: &Timer, repository: &Repository) -> Result<()> {
   let snapshot = timer.snapshot();
 
   let current_attempt_duration = snapshot.current_attempt_duration().total_seconds();
@@ -38,7 +40,10 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
   let run_table = lua.create_table()?;
 
   run_table.set("game_name", run.game_name())?;
-  run_table.set("game_icon", run.game_icon().data())?;
+  run_table.set(
+    "game_icon",
+    repository.game_icon.clone().map(ImageHandleLua),
+  )?;
   run_table.set("category_name", run.category_name())?;
   run_table.set("attempt_count", run.attempt_count())?;
 
@@ -62,7 +67,15 @@ pub fn inject_values_in_lua(lua: &Lua, timer: &Timer) -> Result<()> {
   for (i, segment) in run.segments().iter().enumerate() {
     let segment_table = lua.create_table()?;
     segment_table.set("name", segment.name())?;
-    segment_table.set("icon", segment.icon().data())?;
+    segment_table.set(
+      "icon",
+      repository
+        .splits_icon
+        .get(i)
+        .ok_or(anyhow::Error::msg("couldn't find split icon in repository"))?
+        .clone()
+        .map(ImageHandleLua),
+    )?;
 
     let comparisons_table = lua.create_table()?;
     for comp_name in &comparison_names {
