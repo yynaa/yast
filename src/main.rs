@@ -1,5 +1,4 @@
 use anyhow::Result;
-use fern::colors::ColoredLevelConfig;
 use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, Key, Modifiers};
 use iced_aw::ContextMenu;
 use yast_core::{
