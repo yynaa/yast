@@ -80,8 +80,10 @@ pub enum AppMessage {
 
   NewComponentComboBoxSelected(String),
   AddNewComponent(Vec<usize>, String),
-
   DeleteComponent(Vec<usize>),
+
+  MoveComponentUp(Vec<usize>),
+  MoveComponentDown(Vec<usize>),
 
   ModifyParameterBoolean(Vec<usize>, String, bool),
   ModifyParameterString(Vec<usize>, String, String),
@@ -344,6 +346,14 @@ impl App {
         } else {
           unreachable!()
         }
+      }
+      AppMessage::MoveComponentUp(path) => {
+        let new_pos = self.layout.component_move_up(path)?;
+        Ok(Task::done(AppMessage::OpenComponent(new_pos)))
+      }
+      AppMessage::MoveComponentDown(path) => {
+        let new_pos = self.layout.component_move_down(path)?;
+        Ok(Task::done(AppMessage::OpenComponent(new_pos)))
       }
       AppMessage::ModifyParameterBoolean(path, param, value) => {
         let comp_settings = self

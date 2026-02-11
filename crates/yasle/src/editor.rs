@@ -45,7 +45,26 @@ pub fn component_editor<'a>(
         .into(),
     );
 
-    column_vec.push(row(layout_part_attributes_row_vec).padding(5.0).into());
+    if full_path.len() > 0 {
+      layout_part_attributes_row_vec.push(
+        button("Move Up")
+          .on_press(AppMessage::MoveComponentUp(full_path.clone()))
+          .into(),
+      );
+
+      layout_part_attributes_row_vec.push(
+        button("Move Down")
+          .on_press(AppMessage::MoveComponentDown(full_path.clone()))
+          .into(),
+      );
+    }
+
+    column_vec.push(
+      row(layout_part_attributes_row_vec)
+        .spacing(5.0)
+        .padding(5.0)
+        .into(),
+    );
 
     column_vec.push(
       row(vec![

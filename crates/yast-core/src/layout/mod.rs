@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub mod component;
+pub mod moving;
 pub mod settings;
 
 #[derive(Serialize, Deserialize)]

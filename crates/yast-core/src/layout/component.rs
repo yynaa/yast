@@ -67,6 +67,32 @@ impl Component {
     Ok(())
   }
 
+  pub fn get_from_path(&self, path: Vec<usize>) -> Result<&Self> {
+    if path.len() == 0 {
+      Ok(self)
+    } else {
+      let s = path.split_at(1);
+      self
+        .children
+        .get(s.0[0])
+        .ok_or(anyhow::Error::msg("couldn't find child"))?
+        .get_from_path(s.1.to_vec())
+    }
+  }
+
+  pub fn get_mut_from_path(&mut self, path: Vec<usize>) -> Result<&mut Self> {
+    if path.len() == 0 {
+      Ok(self)
+    } else {
+      let s = path.split_at(1);
+      self
+        .children
+        .get_mut(s.0[0])
+        .ok_or(anyhow::Error::msg("couldn't find child"))?
+        .get_mut_from_path(s.1.to_vec())
+    }
+  }
+
   pub fn import_all_from_directory(p: &str, lua: &Lua) -> Result<HashMap<String, String>> {
     let path = Path::new(p);
     let mut components = HashMap::new();
