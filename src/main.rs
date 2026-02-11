@@ -1,8 +1,8 @@
 use anyhow::Result;
-use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, Key, Modifiers};
+use handy_keys::{HotkeyId, HotkeyManager, HotkeyState};
 use iced_aw::ContextMenu;
 use yast_core::{
-  layout::{Layout, component::Component},
+  layout::{HotkeyAction, Layout, component::Component},
   lua::{LuaContext, inject::inject_values_in_lua},
   repository::Repository,
 };
@@ -33,12 +33,6 @@ use std::{
 };
 
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
-
-pub enum HotkeyAction {
-  StartOrSplitTimer,
-  ResetTimer,
-  PauseTimer,
-}
 
 pub struct App {
   window_id: Option<window::Id>,
@@ -77,28 +71,7 @@ pub enum AppMessage {
 impl App {
   fn new() -> (Self, Task<AppMessage>) {
     let hotkey_manager = HotkeyManager::new().expect("couldn't initialize hotkeys");
-    let mut hotkeys = HashMap::new();
-
-    hotkeys.insert(
-      hotkey_manager
-        .register(Hotkey::new(Modifiers::CTRL, Key::S).unwrap())
-        .unwrap(),
-      HotkeyAction::StartOrSplitTimer,
-    );
-
-    hotkeys.insert(
-      hotkey_manager
-        .register(Hotkey::new(Modifiers::CTRL, Key::R).unwrap())
-        .unwrap(),
-      HotkeyAction::ResetTimer,
-    );
-
-    hotkeys.insert(
-      hotkey_manager
-        .register(Hotkey::new(Modifiers::CTRL, Key::P).unwrap())
-        .unwrap(),
-      HotkeyAction::PauseTimer,
-    );
+    let hotkeys = HashMap::new();
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
@@ -288,6 +261,15 @@ impl App {
         let width = new_layout.width;
         let height = new_layout.height;
         self.layout = new_layout;
+        for (id, _) in self.hotkeys.drain() {
+          self.hotkey_manager.unregister(id)?;
+        }
+        for (action, hotkey) in &self.layout.hotkeys {
+          self.hotkeys.insert(
+            self.hotkey_manager.register(hotkey.clone())?,
+            action.clone(),
+          );
+        }
         info!(
           "loaded layout: {} by {}",
           self.layout.name, self.layout.author

@@ -76,10 +76,10 @@ local function segment_content(i)
     widgets.container(
       widgets.row({
         widgets.space():width("fill"):into(),
-        widgets.text(libtime.format_delta(delta, settings:get("Delta Decimals")))
+        widgets.text(libtime.format_delta(delta, setting("Delta Decimals")))
           :width("shrink"):height("fill"):align_x("right"):align_y("center")
           :into(),
-        widgets.text(libtime.format(time, settings:get("Segment Time Decimals")))
+        widgets.text(libtime.format(time, setting("Segment Time Decimals")))
           :width("shrink"):height("fill"):align_x("right"):align_y("center")
           :into()
       }):width("fill"):height("fill"):spacing(10.0):into()
@@ -92,18 +92,21 @@ end
 return {
   ["name"] = "Splits",
   ["author"] = "yyna",
-  ["settings"] = build_settings()
-    :plugin(sizing.plugin)
-    :plugin(background.plugin)
-    :number("Total Splits", 10)
-    :number("Upcoming Splits", 1)
-    :boolean("Always Show Last Split", true)
-    :number_range("Segment Time Decimals", 2, 0, 3, 1)
-    :number_range("Delta Decimals", 1, 0, 3, 1),
+  ["settings"] = function()
+    return settings_factory()
+      :plugin(sizing.plugin)
+      :plugin(background.plugin)
+      :header("Splits")
+      :number("Total Splits", 10)
+      :number("Upcoming Splits", 1)
+      :boolean("Always Show Last Split", true)
+      :number_range("Segment Time Decimals", 2, 0, 3, 1)
+      :number_range("Delta Decimals", 1, 0, 3, 1)
+    end,
   ["widget"] =
     function()
-      local ts = settings:get("Total Splits")
-      local asls = settings:get("Always Show Last Split")
+      local ts = setting("Total Splits")
+      local asls = setting("Always Show Last Split")
       local current_split = snapshot.current_split or 1
       local range_start, range_end
       
@@ -111,8 +114,8 @@ return {
         range_start = 1
         range_end = #run.segments
       else
-        range_end = current_split + settings:get("Upcoming Splits")
-        range_start = range_end - settings:get("Total Splits") + 1
+        range_end = current_split + setting("Upcoming Splits")
+        range_start = range_end - setting("Total Splits") + 1
         if asls then range_start = range_start + 1 end
         if range_start < 1 then
           range_end = range_end + (1 - range_start)

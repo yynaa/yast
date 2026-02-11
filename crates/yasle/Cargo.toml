@@ -13,3 +13,5 @@ humantime = { workspace = true }
 rfd = { workspace = true }
 dirs = { workspace = true }
 livesplit-core = { workspace = true }
+handy-keys = { workspace = true }
+strum = { workspace = true }

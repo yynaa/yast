@@ -1,8 +1,10 @@
 use anyhow::Result;
+use handy_keys::Hotkey;
 use iced::advanced::image;
 use mlua::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs};
+use strum::EnumIter;
 
 use crate::{
   layout::{
@@ -22,6 +24,7 @@ pub struct Layout {
   pub content: Option<Component>,
 
   pub settings: LayoutSettings,
+  pub hotkeys: HashMap<HotkeyAction, Hotkey>,
   pub width: f32,
   pub height: f32,
 }
@@ -33,7 +36,7 @@ impl Layout {
     lua: &Lua,
     content: String,
   ) -> Result<Self> {
-    let mut layout = toml::from_str::<Self>(&content)?;
+    let mut layout = ron::from_str::<Self>(&content)?;
 
     for (comp_path, comp_parameters) in &layout.settings {
       for (param_name, param_value) in comp_parameters {
@@ -57,8 +60,8 @@ impl Layout {
   }
 
   pub fn save(&self, path: &str) -> Result<()> {
-    let toml = toml::to_string(self)?;
-    fs::write(path, toml)?;
+    let s = ron::to_string(self)?;
+    fs::write(path, s)?;
     Ok(())
   }
 }
@@ -71,8 +74,16 @@ impl Default for Layout {
       content: None,
 
       settings: HashMap::new(),
+      hotkeys: HashMap::new(),
       width: 200.,
       height: 500.,
     }
   }
+}
+
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Debug, Clone, EnumIter)]
+pub enum HotkeyAction {
+  StartOrSplitTimer,
+  ResetTimer,
+  PauseTimer,
 }

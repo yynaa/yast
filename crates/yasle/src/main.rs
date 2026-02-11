@@ -1,7 +1,9 @@
 use anyhow::Result;
+use handy_keys::{Hotkey, KeyboardListener};
 use livesplit_core::{Run, Segment, Timer};
+use strum::IntoEnumIterator;
 use yast_core::{
-  layout::{Layout, component::Component, settings::SettingsValue},
+  layout::{HotkeyAction, Layout, component::Component, settings::SettingsValue},
   lua::{
     LuaContext,
     inject::inject_values_in_lua,
@@ -18,19 +20,28 @@ use crate::{
   tree::{build_tree_from_layout_part, get_mut_component_at_path},
 };
 use iced::{
-  Background, Color, Element, Length, Task, Theme,
+  Background, Color, Element, Length, Padding, Subscription, Task, Theme,
+  alignment::Vertical,
+  time::every,
   widget::{button, column, combo_box, container, image, row, space, stack, text, text_input},
 };
 use std::{
+  backtrace::BacktraceStatus,
   collections::HashMap,
   fs::{self, read_to_string},
-  time::SystemTime,
+  time::{Duration, SystemTime},
 };
 
 pub mod editor;
 pub mod tree;
 
 static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
+
+pub enum AppScreen {
+  LayoutEditor,
+  LayoutPreview,
+  HotkeyEditor,
+}
 
 pub struct App {
   components: HashMap<String, String>,
@@ -40,21 +51,27 @@ pub struct App {
 
   pub dummy_timer: Timer,
 
-  pub preview: bool,
+  pub screen: AppScreen,
 
   pub opened_component: Vec<usize>,
   pub new_component_combo_box_state: combo_box::State<String>,
   pub new_component_combo_box_selected: Option<String>,
   pub parameter_options_combo_box_states: HashMap<String, combo_box::State<String>>,
+
+  pub keyboard_listener: KeyboardListener,
+  pub hotkey_recorder: Option<HotkeyAction>,
 }
 
 #[derive(Clone, Debug)]
 pub enum AppMessage {
+  Update,
+
   LoadLayoutOpenPicker,
   LoadLayout(String),
   SaveLayoutOpenPicker,
   SaveLayout(String),
   TogglePreview,
+  ToggleHotkeyEditor,
 
   LayoutNameChanged(String),
   LayoutAuthorChanged(String),
@@ -66,11 +83,6 @@ pub enum AppMessage {
 
   DeleteComponent(Vec<usize>),
 
-  MoveComponentUp(Vec<usize>),
-  MoveComponentDown(Vec<usize>),
-  EnterAboveComponent(Vec<usize>),
-  ExitParentComponent(Vec<usize>),
-
   ModifyParameterBoolean(Vec<usize>, String, bool),
   ModifyParameterString(Vec<usize>, String, String),
   ModifyParameterOptions(Vec<usize>, String, String),
@@ -79,6 +91,9 @@ pub enum AppMessage {
   ModifyParameterColor(Vec<usize>, String, usize, String),
   ModifyParameterImageOpen(Vec<usize>, String),
   ModifyParameterImageSubmit(Vec<usize>, String, Vec<u8>),
+
+  StartRecordingHotkey(HotkeyAction),
+  AssignHotkey(Hotkey),
 }
 
 impl App {
@@ -122,31 +137,53 @@ impl App {
         repository,
         dummy_timer: timer,
 
-        preview: false,
+        screen: AppScreen::LayoutEditor,
         opened_component: Vec::new(),
         new_component_combo_box_state: combo_box::State::new(new_component_options),
         new_component_combo_box_selected: None,
         parameter_options_combo_box_states: HashMap::new(),
+
+        keyboard_listener: KeyboardListener::new().expect("couldn't start keyboard listener"),
+        hotkey_recorder: None,
       },
       Task::none(),
     )
   }
 
   fn update_handler(&mut self, message: AppMessage) -> Task<AppMessage> {
-    trace!("action: {:?}", message.clone());
+    match &message {
+      AppMessage::Update => {}
+      anything => {
+        trace!("action: {:?}", anything);
+      }
+    }
 
     self.update(message.clone()).unwrap_or_else(|err| {
       error!(
-        "error occured updating message {:?}: {}",
+        "error occurred updating message {:?}: {}",
         message.clone(),
         err
       );
+      if let BacktraceStatus::Captured = err.backtrace().status() {
+        error!("{}", err.backtrace());
+      }
       Task::none()
     })
   }
 
   fn update(&mut self, message: AppMessage) -> Result<Task<AppMessage>> {
     match message {
+      AppMessage::Update => {
+        if let Some(event) = self.keyboard_listener.try_recv() {
+          if self.hotkey_recorder.is_some() {
+            if !event.is_key_down {
+              return Ok(Task::done(AppMessage::AssignHotkey(event.as_hotkey()?)));
+            }
+          }
+        }
+
+        Ok(Task::none())
+      }
       AppMessage::LoadLayoutOpenPicker => {
         let future = Task::future(
           rfd::AsyncFileDialog::new()
@@ -198,7 +235,17 @@ impl App {
         Ok(Task::none())
       }
       AppMessage::TogglePreview => {
-        self.preview = !self.preview;
+        self.screen = match self.screen {
+          AppScreen::LayoutPreview => AppScreen::LayoutEditor,
+          _ => AppScreen::LayoutPreview,
+        };
+        Ok(Task::none())
+      }
+      AppMessage::ToggleHotkeyEditor => {
+        self.screen = match self.screen {
+          AppScreen::HotkeyEditor => AppScreen::LayoutEditor,
+          _ => AppScreen::HotkeyEditor,
+        };
         Ok(Task::none())
       }
       AppMessage::LayoutNameChanged(n) => {
@@ -246,18 +293,30 @@ impl App {
           &self.lua_context.lua,
         )?;
         let param_defaults = new_component.parameters.initialize_defaults();
+        let path_child = if let Some(lcontent) = &mut self.layout.content {
+          let parent = get_mut_component_at_path(lcontent, path.clone())?;
+          let mut path = path.clone();
+          path.push(parent.children.len());
+          path
+        } else {
+          path.clone()
+        };
+
         for (param_name, param_value) in &param_defaults {
           match &param_value {
             SettingsValue::Image(_) => {
               self
                 .repository
                 .layout_images
-                .insert((path.clone(), param_name.clone()), None);
+                .insert((path_child.clone(), param_name.clone()), None);
             }
             _ => {}
           }
         }
-        self.layout.settings.insert(path.clone(), param_defaults);
+        self
+          .layout
+          .settings
+          .insert(path_child.clone(), param_defaults);
 
         if let Some(lcontent) = &mut self.layout.content {
           let parent = get_mut_component_at_path(lcontent, path.clone())?;
@@ -272,139 +331,16 @@ impl App {
       AppMessage::DeleteComponent(mut path) => {
         if let Some(lcontent) = &mut self.layout.content {
           if path.len() > 0 {
+            self.layout.settings.remove(&path);
             let last_path_element = path.pop().unwrap();
             let parent = get_mut_component_at_path(lcontent, path.clone())?;
             parent.children.remove(last_path_element);
             self.opened_component.pop();
-            self.layout.settings.remove(&path);
             Ok(Task::none())
           } else {
             self.layout.content = None;
             Ok(Task::none())
           }
-        } else {
-          unreachable!()
-        }
-      }
-      AppMessage::MoveComponentUp(mut path) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let settings = self
-            .layout
-            .settings
-            .remove(&path)
-            .ok_or(anyhow::Error::msg(
-              "couldn't find component at path in layout settings",
-            ))?;
-          let last_path_element = path
-            .pop()
-            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
-          if last_path_element > 0 {
-            let parent = get_mut_component_at_path(lcontent, path.clone())?;
-            let to_move = parent.children.remove(last_path_element);
-            parent.children.insert(last_path_element - 1, to_move);
-            self.opened_component = path.clone();
-            self.opened_component.push(last_path_element - 1);
-            path.push(last_path_element - 1);
-            self.layout.settings.insert(path, settings);
-          }
-
-          Ok(Task::none())
-        } else {
-          unreachable!()
-        }
-      }
-      AppMessage::MoveComponentDown(mut path) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let settings = self
-            .layout
-            .settings
-            .remove(&path)
-            .ok_or(anyhow::Error::msg(
-              "couldn't find component at path in layout settings",
-            ))?;
-          let last_path_element = path
-            .pop()
-            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
-          let parent = get_mut_component_at_path(lcontent, path.clone())?;
-          if last_path_element < parent.children.len() - 1 {
-            let to_move = parent.children.remove(last_path_element);
-            parent.children.insert(last_path_element + 1, to_move);
-            self.opened_component = path.clone();
-            self.opened_component.push(last_path_element + 1);
-            path.push(last_path_element + 1);
-            self.layout.settings.insert(path, settings);
-          }
-
-          Ok(Task::none())
-        } else {
-          unreachable!()
-        }
-      }
-      AppMessage::EnterAboveComponent(mut path) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          let settings = self
-            .layout
-            .settings
-            .remove(&path)
-            .ok_or(anyhow::Error::msg(
-              "couldn't find component at path in layout settings",
-            ))?;
-          let last_path_element = path
-            .pop()
-            .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
-          if last_path_element > 0 {
-            let parent = get_mut_component_at_path(lcontent, path.clone()).unwrap();
-            let to_move = parent.children.remove(last_path_element);
-            let new_parent = parent.children.get_mut(last_path_element - 1).unwrap();
-            new_parent.children.push(to_move);
-            self.opened_component = path.clone();
-            self.opened_component.push(last_path_element - 1);
-            self.opened_component.push(new_parent.children.len() - 1);
-            path.push(last_path_element - 1);
-            path.push(new_parent.children.len() - 1);
-            self.layout.settings.insert(path, settings);
-          }
-
-          Ok(Task::none())
-        } else {
-          unreachable!()
-        }
-      }
-      AppMessage::ExitParentComponent(mut path) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          if path.len() > 1 {
-            let settings = self
-              .layout
-              .settings
-              .remove(&path)
-              .ok_or(anyhow::Error::msg(
-                "couldn't find component at path in layout settings",
-              ))?;
-            let last_path_element = path
-              .pop()
-              .ok_or(anyhow::Error::msg("can't move root component of layout"))?;
-            let second_last_path_element = path.pop().ok_or(anyhow::Error::msg(
-              "can't exit children of root component of layout",
-            ))?;
-            let parent_parent = get_mut_component_at_path(lcontent, path.clone())?;
-            let myself = parent_parent
-              .children
-              .get_mut(second_last_path_element)
-              .ok_or(anyhow::Error::msg(
-                "can't find original parent while exiting parent",
-              ))?
-              .children
-              .remove(last_path_element);
-            parent_parent
-              .children
-              .insert(second_last_path_element, myself.clone());
-            self.opened_component = path.clone();
-            self.opened_component.push(second_last_path_element);
-            path.push(second_last_path_element);
-            self.layout.settings.insert(path, settings);
-          }
-
-          Ok(Task::none())
         } else {
           unreachable!()
         }
@@ -521,6 +457,17 @@ impl App {
           .insert((path, param), Some(image::Handle::from_bytes(bytes)));
         Ok(Task::none())
       }
+      AppMessage::StartRecordingHotkey(action) => {
+        self.hotkey_recorder = Some(action);
+        Ok(Task::none())
+      }
+      AppMessage::AssignHotkey(hotkey) => {
+        if let Some(action) = &self.hotkey_recorder {
+          self.layout.hotkeys.insert(action.clone(), hotkey);
+        }
+        self.hotkey_recorder = None;
+        Ok(Task::none())
+      }
     }
   }
 
@@ -537,10 +484,6 @@ impl App {
           .width(Length::Fill)
           .on_press(AppMessage::SaveLayoutOpenPicker)
           .into(),
-        button("Preview")
-          .width(Length::Fill)
-          .on_press(AppMessage::TogglePreview)
-          .into(),
         text_input("Layout Name", &self.layout.name)
           .on_input(|i| AppMessage::LayoutNameChanged(i))
           .into(),
@@ -553,107 +496,164 @@ impl App {
       .into(),
     );
 
-    if self.preview {
-      inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer, &self.repository)
-        .unwrap_or_else(|err| error!("couldn't inject values into lua: {}", err));
-
-      let inner = if let Some(lcontent) = &self.layout.content {
-        lcontent
-          .build(
-            &self.lua_context.lua,
-            vec![],
-            &self.layout.settings,
-            &self.repository,
-          )
-          .unwrap_or_else(|err| {
-            error!("couldn't build layout: {}", err);
-            text("couldn't build layout, please check the logs for full details")
-              .width(Length::Fill)
-              .height(Length::Fill)
-              .center()
-              .into()
-          })
-      } else {
-        space().width(Length::Fill).height(Length::Fill).into()
-      };
-
-      let inner_with_background = stack(vec![
-        container(space().width(Length::Fill).height(Length::Fill))
-          .style(|_| container::Style {
-            background: Some(Background::Color(Color::BLACK)),
-            ..Default::default()
-          })
+    main_column_vec.push(
+      row(vec![
+        button("Layout Preview")
+          .width(Length::Fill)
+          .on_press(AppMessage::TogglePreview)
           .into(),
-        inner,
+        button("Hotkey Editor")
+          .width(Length::Fill)
+          .on_press(AppMessage::ToggleHotkeyEditor)
+          .into(),
       ])
-      .into();
+      .padding(5.0)
+      .spacing(5.0)
+      .into(),
+    );
 
-      main_column_vec.push(inner_with_background);
-    } else {
-      if let Some(lcontent) = &self.layout.content {
-        main_column_vec.push(
-          row(vec![
-            column(build_tree_from_layout_part(
-              lcontent,
+    match self.screen {
+      AppScreen::LayoutPreview => {
+        inject_values_in_lua(&self.lua_context.lua, &self.dummy_timer, &self.repository)
+          .unwrap_or_else(|err| error!("couldn't inject values into lua: {}", err));
+
+        let inner = if let Some(lcontent) = &self.layout.content {
+          lcontent
+            .build(
+              &self.lua_context.lua,
               vec![],
-              &self.opened_component,
-            ))
-            .width(Length::FillPortion(1))
-            .padding(5.0)
-            .into(),
-            component_editor(
-              &self,
-              lcontent,
-              self.opened_component.clone(),
-              self.opened_component.clone(),
+              &self.layout.settings,
+              &self.repository,
             )
             .unwrap_or_else(|err| {
-              error!("couldn't build component editor: {}", err);
-              text("couldn't build component editor, please check the logs for full details")
+              error!("couldn't build layout: {}", err);
+              text("couldn't build layout, please check the logs for full details")
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .center()
                 .into()
-            }),
-          ])
-          .height(Length::Fill)
-          .into(),
-        );
-      } else {
-        main_column_vec.push(
-          column(vec![
-            text("You have no base component, please select one").into(),
+            })
+        } else {
+          space().width(Length::Fill).height(Length::Fill).into()
+        };
+
+        let inner_with_background = stack(vec![
+          container(space().width(Length::Fill).height(Length::Fill))
+            .style(|_| container::Style {
+              background: Some(Background::Color(Color::BLACK)),
+              ..Default::default()
+            })
+            .into(),
+          inner,
+        ])
+        .into();
+
+        main_column_vec.push(inner_with_background);
+      }
+      AppScreen::LayoutEditor => {
+        if let Some(lcontent) = &self.layout.content {
+          main_column_vec.push(
             row(vec![
-              combo_box(
-                &self.new_component_combo_box_state,
-                "Parts",
-                self.new_component_combo_box_selected.as_ref(),
-                |f| AppMessage::NewComponentComboBoxSelected(f),
-              )
+              column(build_tree_from_layout_part(
+                lcontent,
+                vec![],
+                &self.opened_component,
+              ))
+              .width(Length::FillPortion(1))
+              .padding(5.0)
               .into(),
-              button("Add Part")
-                .on_press_maybe(
-                  self
-                    .new_component_combo_box_selected
-                    .as_ref()
-                    .map(|f| AppMessage::AddNewComponent(vec![], f.clone())),
+              component_editor(
+                &self,
+                lcontent,
+                self.opened_component.clone(),
+                self.opened_component.clone(),
+              )
+              .unwrap_or_else(|err| {
+                error!("couldn't build component editor: {}", err);
+                text("couldn't build component editor, please check the logs for full details")
+                  .width(Length::Fill)
+                  .height(Length::Fill)
+                  .center()
+                  .into()
+              }),
+            ])
+            .height(Length::Fill)
+            .into(),
+          );
+        } else {
+          main_column_vec.push(
+            column(vec![
+              text("You have no base component, please select one").into(),
+              row(vec![
+                combo_box(
+                  &self.new_component_combo_box_state,
+                  "Parts",
+                  self.new_component_combo_box_selected.as_ref(),
+                  |f| AppMessage::NewComponentComboBoxSelected(f),
                 )
                 .into(),
+                button("Add Part")
+                  .on_press_maybe(
+                    self
+                      .new_component_combo_box_selected
+                      .as_ref()
+                      .map(|f| AppMessage::AddNewComponent(vec![], f.clone())),
+                  )
+                  .into(),
+              ])
+              .into(),
             ])
+            .height(Length::Fill)
+            .padding(5.0)
             .into(),
-          ])
-          .height(Length::Fill)
-          .padding(5.0)
-          .into(),
-        );
+          );
+        }
       }
-    }
+      AppScreen::HotkeyEditor => {
+        for action in HotkeyAction::iter() {
+          let mut row_vec = Vec::new();
+
+          let action_name = format!("{:?}", action);
+
+          row_vec.push(
+            button(text(action_name))
+              .on_press(AppMessage::StartRecordingHotkey(action.clone()))
+              .into(),
+          );
+
+          if let Some(hotkey) = self.layout.hotkeys.get(&action.clone()) {
+            let hotkey_string = hotkey.to_string();
+            row_vec.push(text(hotkey_string).into())
+          }
+
+          if let Some(recorded_action) = &self.hotkey_recorder {
+            if *recorded_action == action {
+              row_vec.push(text("recording...").into());
+            }
+          }
+
+          main_column_vec.push(
+            row(row_vec)
+              .align_y(Vertical::Center)
+              .spacing(5.0)
+              .padding(Padding::new(5.0))
+              .into(),
+          );
+        }
+      }
+    };
 
     column(main_column_vec).height(Length::Fill).into()
   }
 
   fn title(&self) -> String {
     format!("YASLE prototype {}", PROTOTYPE_VERSION)
+  }
+
+  fn subscription(&self) -> Subscription<AppMessage> {
+    Subscription::batch(vec![
+      every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
+    ])
   }
 }
 
@@ -663,13 +663,14 @@ pub fn run_app() -> iced::Result {
   iced::application(App::new, App::update_handler, App::view)
     .title(App::title)
     .theme(Theme::Dark)
+    .subscription(App::subscription)
     .run()
 }
 
 fn main() -> Result<()> {
   fern::Dispatch::new()
     .level(log::LevelFilter::Warn)
-    .level_for("yasle", log::LevelFilter::Info)
+    .level_for("yasle", log::LevelFilter::Trace)
     .format(move |out, message, record| {
       out.finish(format_args!(
         "[{} || {}] {} » {}",

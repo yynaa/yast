@@ -1,25 +1,26 @@
---- @param settings settings
---- @return settings
+--- @param settings settings_factory
+--- @return settings_factory
 local function plugin(settings)
   return settings
-    :number("Component Width", 100.)
-    :boolean("Component Fixed Width", false)
-    :number("Component Height", 100.)
-    :boolean("Component Fixed Height", false)
+    :header("Sizing")
+    :number("Sizing: Component Width", 100.)
+    :boolean("Sizing: Component Fixed Width", false)
+    :number("Sizing: Component Height", 100.)
+    :boolean("Sizing: Component Fixed Height", false)
 end
 
 --- @return string, number
 local function get_width()
   local typ = "fill_portion"
-  if settings:get("Component Fixed Width") then typ = "fixed" end
-  return typ, settings:get("Component Width")
+  if setting("Sizing: Component Fixed Width") then typ = "fixed" end
+  return typ, setting("Sizing: Component Width")
 end
 
 --- @return string, number
 local function get_height()
   local typ = "fill_portion"
-  if settings:get("Component Fixed Height") then typ = "fixed" end
-  return typ, settings:get("Component Height")
+  if setting("Sizing: Component Fixed Height") then typ = "fixed" end
+  return typ, setting("Sizing: Component Height")
 end
 
 local function apply(widget)
