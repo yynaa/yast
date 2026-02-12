@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{
   Color, Element, Font, Length, Pixels,
   alignment::{Horizontal, Vertical},
@@ -33,7 +34,7 @@ impl LuaWidgetText {
     }
   }
 
-  pub fn build<'a, M>(self) -> Element<'a, M> {
+  pub fn build<'a, M>(self) -> Result<Element<'a, M>> {
     let mut t = text(self.content);
     if let Some(align_x) = self.align_x {
       t = t.align_x(align_x);
@@ -56,7 +57,7 @@ impl LuaWidgetText {
     if let Some(font) = self.font {
       t = t.font(Font::with_name(font.clone().leak()))
     }
-    t.into()
+    Ok(t.into())
   }
 }
 

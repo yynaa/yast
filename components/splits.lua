@@ -1,36 +1,6 @@
 local sizing = require("sizing")
 local background = require("background")
-local libtime = require("time")
-
-local function time_or_zero(a)
-  local real_time = 0
-  local game_time = 0
-  if a.real_time then
-    real_time = a.real_time
-  end
-  if a.game_time then
-    game_time = a.game_time
-  end
-  return {
-    ["real_time"] = real_time,
-    ["game_time"] = game_time,
-  }
-end
-
-local function time_adder(a,b) 
-  local real_time = nil
-  local game_time = nil
-  if a.real_time and b.real_time then
-    real_time = a.real_time + b.real_time
-  end
-  if a.game_time and b.game_time then
-    game_time = a.game_time + b.game_time
-  end
-  return {
-    ["real_time"] = real_time,
-    ["game_time"] = game_time,
-  }
-end
+local time = require("time")
 
 --- @param i number
 local function segment_content(i)
@@ -41,23 +11,23 @@ local function segment_content(i)
   local analysis_comp_segment = analysis.comparisons[snapshot.current_comparison].segments[i]
   
   local stack_vec = {}
-  local delta_accessor = time_adder(time_or_zero(analysis_comp_segment.last_delta), analysis_comp_segment.live_segment_delta)
+  local delta_accessor = time.accessor_add(time.accessor_or_zero(analysis_comp_segment.last_delta), analysis_comp_segment.live_segment_delta)
   local time_accessor = segment_comp
   if snapshot.current_split and i < snapshot.current_split then
     delta_accessor = analysis_comp_segment.last_delta
-    time_accessor = time_adder(segment_comp, delta_accessor)
+    time_accessor = time.accessor_add(segment_comp, delta_accessor)
   end
   
-  local time = time_accessor.real_time
+  local timen = time_accessor.real_time
   local delta = delta_accessor.real_time
   local time_best = segment_best.real_time
   if snapshot.current_timing_method == "GameTime" then
-    time = time_accessor.game_time
+    timen = time_accessor.game_time
     delta = delta_accessor.game_time
     time_best = segment_best.game_time
   end
   
-  if not time or not snapshot.current_split or i > snapshot.current_split or i == snapshot.current_split and time + delta < time_best then
+  if not timen or not snapshot.current_split or i > snapshot.current_split or i == snapshot.current_split and timen + delta < time_best then
     delta = nil
   end
   
@@ -67,24 +37,38 @@ local function segment_content(i)
     ):width("fill"):height("fill"):style({0,0,0,0},{0,0,1,1}):into())
   end
   
-  table.insert(stack_vec, widgets.column({
+  local delta_color = "Color Ahead"
+  if delta ~= nil and delta >= 0 then delta_color = "Color Behind" end
+  
+  local row_vec = {}
+  
+  if segment.icon then
+    table.insert(row_vec, widgets.image(segment.icon):width("shrink"):height("fill"):into())
+  end
+  
+  table.insert(row_vec, widgets.column({
     -- split name
     widgets.text(segment.name)
       :width("fill"):height("fill"):align_x("left"):align_y("center")
+      :style(setting("Color Text"))
       :into(),
     -- times and delta
     widgets.container(
       widgets.row({
         widgets.space():width("fill"):into(),
-        widgets.text(libtime.format_delta(delta, setting("Delta Decimals")))
+        widgets.text(time.format_delta(delta, setting("Delta Decimals")))
           :width("shrink"):height("fill"):align_x("right"):align_y("center")
+          :style(setting(delta_color))
           :into(),
-        widgets.text(libtime.format(time, setting("Segment Time Decimals")))
+        widgets.text(time.format(timen, setting("Segment Time Decimals")))
           :width("shrink"):height("fill"):align_x("right"):align_y("center")
+          :style(setting("Color Text"))
           :into()
       }):width("fill"):height("fill"):spacing(10.0):into()
     ):width("fill"):height("fill"):into()
-  }):width("fill"):height("fill"):padding(5.0, 5.0, 5.0, 5.0):into())
+  }):width("fill"):height("fill"):into())
+  
+  table.insert(stack_vec, widgets.row(row_vec):width("fill"):height("fill"):spacing(5.0):padding(5.0, 5.0, 5.0, 5.0):into())
   
   return widgets.stack(stack_vec):width("fill_portion", 1):height("fill"):into()
 end
@@ -94,14 +78,19 @@ return {
   ["author"] = "yyna",
   ["settings"] = function()
     return settings_factory()
+      :header("Position & Size")
       :plugin(sizing.plugin)
       :plugin(background.plugin)
       :header("Splits")
       :number("Total Splits", 10)
       :number("Upcoming Splits", 1)
       :boolean("Always Show Last Split", true)
-      :number_range("Segment Time Decimals", 2, 0, 3, 1)
-      :number_range("Delta Decimals", 1, 0, 3, 1)
+      :number_range("Segment Time Decimals", 0, 3, 1, 2)
+      :number_range("Delta Decimals", 0, 3, 1, 1)
+      :header("Color")
+      :color("Color Text",1,1,1,1)
+      :color("Color Ahead",0,1,0,1)
+      :color("Color Behind",1,0,0,1)
     end,
   ["widget"] =
     function()

@@ -54,7 +54,7 @@ impl Layout {
     }
 
     if let Some(root) = &mut layout.content {
-      root.load(repository, components, lua)?
+      root.load(vec![], &mut layout.settings, repository, components, lua)?
     }
 
     Ok(layout)

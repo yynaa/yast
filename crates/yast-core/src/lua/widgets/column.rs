@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{Element, Length, Padding, Pixels, alignment::Horizontal, widget::column};
 use mlua::prelude::*;
 
@@ -38,7 +39,7 @@ impl LuaWidgetColumn {
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
     repository: &Repository,
-  ) -> Element<'a, M> {
+  ) -> Result<Element<'a, M>> {
     let inner_built = self
       .inner
       .iter()
@@ -46,7 +47,7 @@ impl LuaWidgetColumn {
         e.clone()
           .build(tree, lua, path.clone(), layout_settings, repository)
       })
-      .collect::<Vec<Element<'a, M>>>();
+      .collect::<Result<Vec<Element<'a, M>>>>()?;
 
     let mut c = column(inner_built);
 
@@ -69,7 +70,7 @@ impl LuaWidgetColumn {
       c = c.clip(clip);
     }
 
-    c.into()
+    Ok(c.into())
   }
 }
 

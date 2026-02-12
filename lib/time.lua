@@ -58,7 +58,61 @@ local function format_delta(delta, decimals)
   return time_string
 end
 
+--- @param accessor table
+--- @return number
+local function current_timing_accessor(accessor)
+  if snapshot.current_timing_method == "GameTime" then
+    return accessor.game_time
+  else
+    return accessor.real_time
+  end
+end
+
+
+local function accessor_or_zero(a)
+  local real_time = 0
+  local game_time = 0
+  if a.real_time then
+    real_time = a.real_time
+  end
+  if a.game_time then
+    game_time = a.game_time
+  end
+  return {
+    ["real_time"] = real_time,
+    ["game_time"] = game_time,
+  }
+end
+
+local function accessor_add(a,b) 
+  local real_time = nil
+  local game_time = nil
+  if a.real_time and b.real_time then
+    real_time = a.real_time + b.real_time
+  end
+  if a.game_time and b.game_time then
+    game_time = a.game_time + b.game_time
+  end
+  return {
+    ["real_time"] = real_time,
+    ["game_time"] = game_time,
+  }
+end
+
+--- @return table|nil
+local function live_delta()
+  local current_split = snapshot.current_split
+  if current_split == nil or current_split > #analysis.comparisons[snapshot.current_comparison].segments then return nil end
+  local analysis_comp_segment = analysis.comparisons[snapshot.current_comparison].segments[current_split]
+  return accessor_add(accessor_or_zero(analysis_comp_segment.last_delta), analysis_comp_segment.live_segment_delta)
+end
+
 return {
   ["format"] = format,
-  ["format_delta"] = format_delta
+  ["format_delta"] = format_delta,
+  ["current_timing_accessor"] = current_timing_accessor,
+  ["cta"] = current_timing_accessor,
+  ["accessor_add"] = accessor_add,
+  ["accessor_or_zero"] = accessor_or_zero,
+  ["live_delta"] = live_delta
 }

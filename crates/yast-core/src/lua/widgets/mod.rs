@@ -64,21 +64,18 @@ impl LuaWidget {
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
     repository: &Repository,
-  ) -> Element<'a, M> {
+  ) -> Result<Element<'a, M>> {
     match self {
       LuaWidget::InternalChild(index) => {
         let child = tree
           .children
           .get(index)
-          .ok_or(anyhow::Error::msg("invalid path (no such child at index)"))
-          .unwrap();
+          .ok_or(anyhow::Error::msg("invalid path (no such child at index)"))?;
 
         let mut new_path = path.clone();
         new_path.push(index);
 
-        child
-          .build(lua, new_path, layout_settings, repository)
-          .unwrap()
+        child.build(lua, new_path, layout_settings, repository)
       }
       LuaWidget::Column(inner) => inner.build(tree, lua, path, layout_settings, repository),
       LuaWidget::Row(inner) => inner.build(tree, lua, path, layout_settings, repository),

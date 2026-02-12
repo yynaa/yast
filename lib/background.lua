@@ -2,7 +2,6 @@
 --- @return settings_factory
 local function plugin(settings)
   return settings
-    :header("Background")
     :options("Background: Type", {"None", "Solid", "Image"}, "None")
     :color("Background: Solid Color", 1, 1, 1, 1, function(s) return s("Background: Type") == "Solid" end)
     :image("Background: Image", function(s) return s("Background: Type") == "Image" end)

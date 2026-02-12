@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{ContentFit, Element, Length, Rectangle, widget::image};
 use mlua::prelude::*;
 
@@ -41,7 +42,7 @@ impl LuaWidgetImage {
     }
   }
 
-  pub fn build<'a, M>(self) -> Element<'a, M> {
+  pub fn build<'a, M>(self) -> Result<Element<'a, M>> {
     let mut img = image(self.handle.0.clone());
 
     if let Some(width) = self.width {
@@ -63,7 +64,7 @@ impl LuaWidgetImage {
       img = img.crop(crop);
     }
 
-    img.into()
+    Ok(img.into())
   }
 }
 

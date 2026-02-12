@@ -29,7 +29,7 @@ pub enum SettingsFactoryValue {
 }
 
 impl SettingsFactoryValue {
-  fn to_settings_value(&self) -> SettingsValue {
+  pub fn to_settings_value(&self) -> SettingsValue {
     match self {
       Self::Boolean(d) => SettingsValue::Boolean(*d),
       Self::String(d) => SettingsValue::String(d.clone()),

@@ -2,7 +2,6 @@
 --- @return settings_factory
 local function plugin(settings)
   return settings
-    :header("Sizing")
     :number("Sizing: Component Width", 100.)
     :boolean("Sizing: Component Fixed Width", false)
     :number("Sizing: Component Height", 100.)

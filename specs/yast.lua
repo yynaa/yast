@@ -47,13 +47,13 @@ local run_segment_comparison = {}
 
 --- @class run_segment
 --- @field name string
---- @field icon number[]
+--- @field icon userdata
 --- @field comparisons table<string, run_segment_comparison>
 local run_segment = {}
 
 --- @class run
 --- @field game_name string
---- @field game_icon number[]
+--- @field game_icon userdata
 --- @field category_name string
 --- @field attempt_count number
 --- @field metadata run_metadata

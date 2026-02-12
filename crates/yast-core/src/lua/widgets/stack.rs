@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{Element, Length, widget::stack};
 use mlua::prelude::*;
 
@@ -32,7 +33,7 @@ impl LuaWidgetStack {
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
     repository: &Repository,
-  ) -> Element<'a, M> {
+  ) -> Result<Element<'a, M>> {
     let inner_built = self
       .inner
       .iter()
@@ -40,7 +41,7 @@ impl LuaWidgetStack {
         e.clone()
           .build(tree, lua, path.clone(), layout_settings, repository)
       })
-      .collect::<Vec<Element<'a, M>>>();
+      .collect::<Result<Vec<Element<'a, M>>>>()?;
 
     let mut s = stack(inner_built);
 
@@ -54,7 +55,7 @@ impl LuaWidgetStack {
       s = s.clip(clip);
     }
 
-    s.into()
+    Ok(s.into())
   }
 }
 

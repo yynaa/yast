@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
   layout::settings::LayoutSettings,
-  lua::{settings::SettingsFactory, widgets::LuaWidget},
+  lua::{
+    settings::{SettingsFactory, SettingsFactoryEntryContent},
+    widgets::LuaWidget,
+  },
   repository::Repository,
 };
 
@@ -45,6 +48,8 @@ impl Component {
 
   pub fn load(
     &mut self,
+    path: Vec<usize>,
+    layout_settings: &mut LayoutSettings,
     repository: &mut Repository,
     components: &HashMap<String, String>,
     lua: &Lua,
@@ -60,8 +65,21 @@ impl Component {
     self.widget = template.widget;
     self.parameters = template.parameters;
 
-    for child in &mut self.children {
-      child.load(repository, components, lua)?;
+    let comp_parameters = layout_settings.get_mut(&path).ok_or(anyhow::Error::msg(
+      "missing layout settings table for component",
+    ))?;
+    for p in &self.parameters.0 {
+      if let SettingsFactoryEntryContent::Value(name, value) = &p.content {
+        if !comp_parameters.contains_key(name) {
+          comp_parameters.insert(name.clone(), value.to_settings_value());
+        }
+      }
+    }
+
+    for (i, child) in self.children.iter_mut().enumerate() {
+      let mut path = path.clone();
+      path.push(i);
+      child.load(path, layout_settings, repository, components, lua)?;
     }
 
     Ok(())
@@ -155,7 +173,7 @@ impl Component {
 
       let e = widget
         .call::<LuaWidget>(())?
-        .build(&self, lua, path, layout_settings, repository);
+        .build(&self, lua, path, layout_settings, repository)?;
       Ok(e)
     } else {
       Err(anyhow::Error::msg(

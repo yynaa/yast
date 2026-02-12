@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{
   Color, Element, Length, Padding,
   alignment::{Horizontal, Vertical},
@@ -44,10 +45,10 @@ impl LuaWidgetContainer {
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
     repository: &Repository,
-  ) -> Element<'a, M> {
+  ) -> Result<Element<'a, M>> {
     let inner_built = self
       .inner
-      .build(tree, lua, path.clone(), layout_settings, repository);
+      .build(tree, lua, path.clone(), layout_settings, repository)?;
 
     let mut c = container(inner_built);
 
@@ -73,7 +74,7 @@ impl LuaWidgetContainer {
       c = c.clip(clip);
     }
 
-    c.into()
+    Ok(c.into())
   }
 }
 

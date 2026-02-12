@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{Element, Length, Padding, Pixels, alignment::Vertical, widget::row};
 use mlua::prelude::*;
 
@@ -38,7 +39,7 @@ impl LuaWidgetRow {
     path: Vec<usize>,
     layout_settings: &LayoutSettings,
     repository: &Repository,
-  ) -> Element<'a, M> {
+  ) -> Result<Element<'a, M>> {
     let inner_built = self
       .inner
       .iter()
@@ -46,7 +47,7 @@ impl LuaWidgetRow {
         e.clone()
           .build(tree, lua, path.clone(), layout_settings, repository)
       })
-      .collect::<Vec<Element<'a, M>>>();
+      .collect::<Result<Vec<Element<'a, M>>>>()?;
 
     let mut r = row(inner_built);
 
@@ -69,7 +70,7 @@ impl LuaWidgetRow {
       r = r.clip(clip);
     }
 
-    r.into()
+    Ok(r.into())
   }
 }
 

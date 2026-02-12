@@ -1,3 +1,4 @@
+use anyhow::Result;
 use iced::{Element, Length};
 use mlua::prelude::*;
 
@@ -17,7 +18,7 @@ impl LuaWidgetSpace {
     }
   }
 
-  pub fn build<'a, M: 'a>(self) -> Element<'a, M> {
+  pub fn build<'a, M: 'a>(self) -> Result<Element<'a, M>> {
     let mut s = iced::widget::space();
     if let Some(width) = self.width {
       s = s.width(width);
@@ -25,7 +26,7 @@ impl LuaWidgetSpace {
     if let Some(height) = self.height {
       s = s.height(height);
     }
-    s.into()
+    Ok(s.into())
   }
 }
 
