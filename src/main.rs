@@ -38,6 +38,7 @@ pub struct App {
   window_id: Option<window::Id>,
   hotkey_manager: HotkeyManager,
   hotkeys: HashMap<HotkeyId, HotkeyAction>,
+  hotkeys_on: bool,
   components: HashMap<String, String>,
   lua_context: LuaContext,
   pub layout: Layout,
@@ -55,6 +56,8 @@ pub enum AppMessage {
   WindowClosing(window::Id),
   WindowResized((window::Id, Size)),
   ResizeTimer(f32, f32),
+
+  ToggleHotkeys,
 
   LoadSplitsOpenPicker,
   LoadSplits(String),
@@ -99,6 +102,7 @@ impl App {
 
         hotkey_manager,
         hotkeys,
+        hotkeys_on: false,
 
         components,
         lua_context,
@@ -154,11 +158,35 @@ impl App {
               HotkeyAction::StartOrSplitTimer => {
                 timer.split_or_start();
               }
+              HotkeyAction::StartTimer => {
+                timer.start();
+              }
+              HotkeyAction::SplitTimer => {
+                timer.split();
+              }
+              HotkeyAction::ResetTimerWithoutSaving => {
+                timer.reset(false);
+              }
               HotkeyAction::ResetTimer => {
                 timer.reset(true);
               }
+              HotkeyAction::SkipSplit => {
+                timer.skip_split();
+              }
+              HotkeyAction::UndoSplit => {
+                timer.undo_split();
+              }
               HotkeyAction::PauseTimer => {
                 timer.toggle_pause();
+              }
+              HotkeyAction::ToggleTimingMethod => {
+                timer.toggle_timing_method();
+              }
+              HotkeyAction::NextComparison => {
+                timer.switch_to_next_comparison();
+              }
+              HotkeyAction::PreviousComparison => {
+                timer.switch_to_previous_comparison();
               }
             }
           }
@@ -179,6 +207,24 @@ impl App {
         self.window_id.expect("no window id stored in app"),
         Size::new(w, h),
       )),
+      AppMessage::ToggleHotkeys => {
+        for (id, _) in self.hotkeys.drain() {
+          self.hotkey_manager.unregister(id)?;
+        }
+
+        if !self.hotkeys_on {
+          for (action, hotkey) in &self.layout.hotkeys {
+            self.hotkeys.insert(
+              self.hotkey_manager.register(hotkey.clone())?,
+              action.clone(),
+            );
+          }
+        }
+
+        self.hotkeys_on = !self.hotkeys_on;
+
+        Ok(Task::none())
+      }
       AppMessage::LoadSplitsOpenPicker => {
         let future = Task::future(
           rfd::AsyncFileDialog::new()
@@ -264,12 +310,7 @@ impl App {
         for (id, _) in self.hotkeys.drain() {
           self.hotkey_manager.unregister(id)?;
         }
-        for (action, hotkey) in &self.layout.hotkeys {
-          self.hotkeys.insert(
-            self.hotkey_manager.register(hotkey.clone())?,
-            action.clone(),
-          );
-        }
+        self.hotkeys_on = false;
         info!(
           "loaded layout: {} by {}",
           self.layout.name, self.layout.author
@@ -352,6 +393,12 @@ impl App {
       ..Default::default()
     };
 
+    let toggle_hotkeys_state = match self.hotkeys_on {
+      true => "off",
+      false => "on",
+    };
+    let toggle_hotkeys_text = format!("toggle hotkeys {}", toggle_hotkeys_state);
+
     let context = ContextMenu::new(inner, move || {
       column(vec![
         button("load splits")
@@ -373,6 +420,12 @@ impl App {
         button("save layout")
           .width(Length::Fill)
           .on_press(AppMessage::SaveLayoutOpenPicker)
+          .style(styler)
+          .into(),
+        space().width(Length::Fixed(10.0)).into(),
+        button(text(toggle_hotkeys_text.clone()))
+          .width(Length::Fill)
+          .on_press(AppMessage::ToggleHotkeys)
           .style(styler)
           .into(),
         space().width(Length::Fixed(10.0)).into(),

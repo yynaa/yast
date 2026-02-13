@@ -85,6 +85,14 @@ impl Default for Layout {
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Debug, Clone, EnumIter)]
 pub enum HotkeyAction {
   StartOrSplitTimer,
+  StartTimer,
+  SplitTimer,
+  ResetTimerWithoutSaving,
   ResetTimer,
+  SkipSplit,
+  UndoSplit,
   PauseTimer,
+  ToggleTimingMethod,
+  NextComparison,
+  PreviousComparison,
 }

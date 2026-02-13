@@ -1,5 +1,5 @@
 use anyhow::Result;
-use handy_keys::{Hotkey, KeyboardListener};
+use handy_keys::{Hotkey, Key, KeyboardListener};
 use livesplit_core::{Run, Segment, Timer};
 use strum::IntoEnumIterator;
 use yast_core::{
@@ -473,9 +473,21 @@ impl App {
         Ok(Task::none())
       }
       AppMessage::AssignHotkey(hotkey) => {
-        if let Some(action) = &self.hotkey_recorder {
-          self.layout.hotkeys.insert(action.clone(), hotkey);
+        let mut is_escape = false;
+        if let Some(key) = hotkey.key {
+          if key == Key::Escape {
+            is_escape = true;
+          }
         }
+
+        if let Some(action) = &self.hotkey_recorder {
+          if is_escape {
+            self.layout.hotkeys.remove(action);
+          } else {
+            self.layout.hotkeys.insert(action.clone(), hotkey);
+          }
+        }
+
         self.hotkey_recorder = None;
         Ok(Task::none())
       }
