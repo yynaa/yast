@@ -32,11 +32,11 @@ local function format(time, decimals)
   if decimals > 0 then
     time_string = time_string .. "." .. time_string_ms
   end
-  if time_hours ~= 0 then
-    time_string = time_string_hours .. ":" .. time_string
-  end
   if time_hours ~= 0 or time_minutes ~= 0 then
     time_string = time_string_minutes .. ":" .. time_string
+  end
+  if time_hours ~= 0 then
+    time_string = time_string_hours .. ":" .. time_string
   end
   
   return time_string
@@ -99,6 +99,21 @@ local function accessor_add(a,b)
   }
 end
 
+local function accessor_sub(a,b) 
+  local real_time = nil
+  local game_time = nil
+  if a.real_time and b.real_time then
+    real_time = a.real_time - b.real_time
+  end
+  if a.game_time and b.game_time then
+    game_time = a.game_time - b.game_time
+  end
+  return {
+    ["real_time"] = real_time,
+    ["game_time"] = game_time,
+  }
+end
+
 --- @return table|nil
 local function live_delta()
   local current_split = snapshot.current_split
@@ -113,6 +128,7 @@ return {
   ["current_timing_accessor"] = current_timing_accessor,
   ["cta"] = current_timing_accessor,
   ["accessor_add"] = accessor_add,
+  ["accessor_sub"] = accessor_sub,
   ["accessor_or_zero"] = accessor_or_zero,
   ["live_delta"] = live_delta
 }

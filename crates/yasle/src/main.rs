@@ -124,12 +124,13 @@ impl App {
 
     let mut new_component_options = Vec::new();
 
-    new_component_options.append(
-      &mut components
-        .keys()
-        .map(|s| s.clone())
-        .collect::<Vec<String>>(),
-    );
+    let mut components_names = components
+      .keys()
+      .map(|s| s.clone())
+      .collect::<Vec<String>>();
+    components_names.sort();
+
+    new_component_options.append(&mut components_names);
 
     (
       Self {
