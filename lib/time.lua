@@ -69,6 +69,13 @@ local function current_timing_accessor(accessor)
 end
 
 
+local function accessor_zero(a)
+  return {
+    ["real_time"] = 0,
+    ["game_time"] = 0,
+  }
+end
+
 local function accessor_or_zero(a)
   local real_time = 0
   local game_time = 0
@@ -129,6 +136,7 @@ return {
   ["cta"] = current_timing_accessor,
   ["accessor_add"] = accessor_add,
   ["accessor_sub"] = accessor_sub,
+  ["accessor_zero"] = accessor_zero,
   ["accessor_or_zero"] = accessor_or_zero,
   ["live_delta"] = live_delta
 }

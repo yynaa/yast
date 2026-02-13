@@ -7,8 +7,8 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
 
 ## Rationale
 
-- Cross-platform timer based on the most widely used timer in the world
-- Interoperability with said timer
+- Cross-platform timer based on LiveSplit through livesplit-core
+- Interoperability for splits with LiveSplit and LiveSplit One
 - Ease of development for Layout through Lua scripting
 
 ## Features
@@ -25,10 +25,6 @@ YAST (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native 
   - ✅ Base splits
   - ⌛ Autosplitting
 - ✅ Scripting for Layout components
-- ⚠️ Default Layout components
-  - ⚠️ Libraries
-  - ⚠️ Containers
-  - ⚠️ Information
 - ✅ Layout Editor
 - 🔴 Splits Editor (use [LSO](https://one.livesplit.org) until then)
 

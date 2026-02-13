@@ -1,6 +1,16 @@
 local labeled = require("labeled")
 local time = require("time")
 
+local function get(a)
+  return time.accessor_sub(run.segments[a].comparisons[snapshot.current_comparison], run.segments[a].comparisons["Best Segments"])
+end
+
+local function difference(a,b)
+  local a_diff = time.accessor_sub(run.segments[a].comparisons[snapshot.current_comparison], run.segments[a].comparisons["Best Segments"])
+  local b_diff = time.accessor_sub(run.segments[b].comparisons[snapshot.current_comparison], run.segments[b].comparisons["Best Segments"])
+  return time.accessor_sub(a_diff, b_diff)
+end
+
 return {
   ["name"] = "Possible Time Save",
   ["author"] = "yyna",
@@ -23,16 +33,19 @@ return {
       local time_access = nil
       if snapshot.current_split ~= nil then
         local current_split = math.min(snapshot.current_split, #run.segments)
+        
         if setting("Show Total Possible Time Save") then
-          time_access = time.accessor_or_zero(nil)
-          for i = current_split, #run.segments do
-            local segment = run.segments[current_split]
-            local to_add = time.accessor_sub(segment.comparisons[snapshot.current_comparison], segment.comparisons["Best Segments"])
-            time_access = time.accessor_add(time_access, to_add)
+          if current_split == 1 then
+            time_access = get(#run.segments)
+          else
+            time_access = difference(#run.segments, current_split - 1)
           end
         else
-          local segment = run.segments[current_split]
-          time_access = time.accessor_sub(segment.comparisons[snapshot.current_comparison], segment.comparisons["Best Segments"])
+          if current_split == 1 then
+            time_access = get(1)
+          else
+            time_access = difference(current_split, current_split - 1)
+          end
         end
       end
       
@@ -42,7 +55,7 @@ return {
       end
 
       return labeled.apply(
-        widgets.text(time.format_delta(time_number, setting("Value Text: Decimals"))):style(setting("Value Text: Color"))
+        widgets.text(time.format(time_number, setting("Value Text: Decimals"))):style(setting("Value Text: Color"))
       )
     end
 }
