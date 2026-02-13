@@ -34,7 +34,7 @@ use std::{
   time::{Duration, SystemTime},
 };
 
-static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
+static VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct App {
   window_id: Option<window::Id>,
@@ -414,6 +414,12 @@ impl App {
           .style(styler)
           .into(),
         space().width(Length::Fixed(10.0)).into(),
+        button("load autosplitter")
+          .width(Length::Fill)
+          .on_press(AppMessage::LoadAutosplitterOpenPicker)
+          .style(styler)
+          .into(),
+        space().width(Length::Fixed(10.0)).into(),
         button("load layout")
           .width(Length::Fill)
           .on_press(AppMessage::LoadLayoutOpenPicker)
@@ -454,7 +460,7 @@ impl App {
   }
 
   fn title(&self) -> String {
-    format!("YAST prototype {}", PROTOTYPE_VERSION)
+    format!("YAST {}", VERSION)
   }
 
   fn subscription(&self) -> Subscription<AppMessage> {
@@ -467,7 +473,7 @@ impl App {
 }
 
 pub fn run_app() -> iced::Result {
-  info!("starting YAST prototype {}", PROTOTYPE_VERSION);
+  info!("starting YAST {}", VERSION);
 
   iced::application(App::new, App::update_handler, App::view)
     .subscription(App::subscription)

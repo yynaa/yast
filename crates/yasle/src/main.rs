@@ -37,7 +37,7 @@ use std::{
 pub mod editor;
 pub mod tree;
 
-static PROTOTYPE_VERSION: &str = env!("PROTOTYPE_VERSION");
+static VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub enum AppScreen {
   LayoutEditor,
@@ -672,7 +672,7 @@ impl App {
   }
 
   fn title(&self) -> String {
-    format!("YASLE prototype {}", PROTOTYPE_VERSION)
+    format!("YASLE {}", VERSION)
   }
 
   fn subscription(&self) -> Subscription<AppMessage> {
@@ -683,7 +683,7 @@ impl App {
 }
 
 pub fn run_app() -> iced::Result {
-  info!("starting YASLE prototype {}", PROTOTYPE_VERSION);
+  info!("starting YASLE {}", VERSION);
 
   iced::application(App::new, App::update_handler, App::view)
     .title(App::title)

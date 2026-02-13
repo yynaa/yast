@@ -2,5 +2,5 @@
 .zed
 **/*.yasl
 **/*.lss
-prototype/**
 **/*.log
+.luarc.json
