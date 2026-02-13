@@ -1,8 +1,10 @@
 use anyhow::Result;
 use handy_keys::{Hotkey, Key, KeyboardListener};
+use include_dir::Dir;
 use livesplit_core::{Run, Segment, Timer};
 use strum::IntoEnumIterator;
 use yast_core::{
+  defaults::copy_default_components,
   layout::{HotkeyAction, Layout, component::Component, settings::SettingsValue},
   lua::{
     LuaContext,
@@ -690,10 +692,27 @@ pub fn run_app() -> iced::Result {
     .run()
 }
 
+#[cfg(target_os = "macos")]
+fn is_ready() -> Result<bool> {
+  let acc = handy_keys::check_accessibility();
+  if !acc {
+    handy_keys::open_accessibility_settings()?;
+  }
+  acc
+}
+
+#[cfg(not(target_os = "macos"))]
+fn is_ready() -> Result<bool> {
+  Ok(true)
+}
+
+static DEFAULT_DIR: Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../default");
+
 fn main() -> Result<()> {
   fern::Dispatch::new()
     .level(log::LevelFilter::Warn)
-    .level_for("yasle", log::LevelFilter::Trace)
+    .level_for("yasle", log::LevelFilter::Info)
+    .level_for("yast-core", log::LevelFilter::Info)
     .format(move |out, message, record| {
       out.finish(format_args!(
         "[{} || {}] {} » {}",
@@ -707,7 +726,11 @@ fn main() -> Result<()> {
     .chain(fern::log_file("yasle.log")?)
     .apply()?;
 
-  run_app()?;
+  copy_default_components(&DEFAULT_DIR)?;
+
+  if is_ready()? {
+    run_app()?;
+  }
 
   Ok(())
 }

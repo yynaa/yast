@@ -1,7 +1,9 @@
 use anyhow::Result;
 use handy_keys::{HotkeyId, HotkeyManager, HotkeyState};
 use iced_aw::ContextMenu;
+use include_dir::Dir;
 use yast_core::{
+  defaults::copy_default_components,
   layout::{HotkeyAction, Layout, component::Component},
   lua::{LuaContext, inject::inject_values_in_lua},
   repository::Repository,
@@ -489,10 +491,13 @@ fn is_ready() -> Result<bool> {
   Ok(true)
 }
 
+static DEFAULT_DIR: Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/default");
+
 fn main() -> Result<()> {
   fern::Dispatch::new()
     .level(log::LevelFilter::Warn)
     .level_for("yast", log::LevelFilter::Info)
+    .level_for("yast_core", log::LevelFilter::Info)
     .format(move |out, message, record| {
       out.finish(format_args!(
         "[{} || {}] {} » {}",
@@ -505,6 +510,8 @@ fn main() -> Result<()> {
     .chain(std::io::stdout())
     .chain(fern::log_file("yast.log")?)
     .apply()?;
+
+  copy_default_components(&DEFAULT_DIR)?;
 
   if is_ready()? {
     run_app()?;
