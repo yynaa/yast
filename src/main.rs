@@ -502,8 +502,6 @@ impl App {
           .on_press(AppMessage::ToggleHotkeys)
           .style(styler)
           .into(),
-        space().width(Length::Fixed(10.0)).into(),
-        button("exit").width(Length::Fill).style(styler).into(),
       ])
       .width(Length::Fixed(200.))
       .spacing(2.0)
