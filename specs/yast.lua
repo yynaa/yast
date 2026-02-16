@@ -1,6 +1,10 @@
+--- Function that represents whether or not an entry should be shown.
+--- If it is nil, it means the entry will always be shown.
 --- @alias show_if (fun(s: settings): boolean)|nil
 
+--- Factory for settings
 --- @class settings_factory
+--- Inject a plugin to settings
 --- @field plugin fun(self: settings_factory, plugin: fun(s: settings_factory): settings_factory): settings_factory
 --- @field header fun(self: settings_factory, title: string, show_if: show_if): settings_factory
 --- @field boolean fun(self: settings_factory, name: string, default: boolean, show_if: show_if): settings_factory
@@ -11,9 +15,11 @@
 --- @field color fun(self: settings_factory, name: string, r: number, g: number, b: number, a: number, show_if: show_if): settings_factory
 --- @field image fun(self: settings_factory, name: string, show_if: show_if): settings_factory
 
+--- Create a new Settings Factory
 --- @return settings_factory
 function settings_factory() end
 
+--- Get a setting from the layout
 --- @alias settings fun(name: string): any
 --- @return any
 --- @param name string
