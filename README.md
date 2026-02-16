@@ -1,13 +1,13 @@
-# YAST, and the YASX ecosystem
-
-**YAST** (Yet Another Speedrunning Timer || "fast" and "yyna" combined) is a native multi-platform frontend for
-livesplit-core written in Rust.  
-**YASLE** (Yet Another Speedrunning Layout Editor) is YAST's layout editor.
-
-***YAST** and **YASLE** form the **YASX ecosystem**, your multi-platform speedrunning timer!*
+<div align="center">
+    <h1>YAST: Yet Another Speedrunning Timer</h1>
+    <p><b>YAST</b> <i>(Yet Another Speedrunning Timer, "fast" and "yyna" combined)</i> is a native multi-platform timer based on livesplit-core.</p>
+    <img src="https://raw.githubusercontent.com/wiki/yynaa/yast/yast-0.1.0.png" height="500">
+    <p><b>YASLE</b> <i>(Yet Another Speedrunning Layout Editor)</i> is YAST's layout editor.</p>
+    <p><i><b>YAST</b> and <b>YASLE</b> form the <b>YASX ecosystem</b>, your multi-platform speedrunning timer!</i></p>
+</div>
 
 > [!WARNING]
-> **The YASX ecosystem is in alpha!**  
+> **YASX is in alpha!**  
 > This means **major changes** could occur to the Layout Lua API, which means:
 > - as a user, components may break when upgrading the YASX-ecosystem.
 > - as a developer, you may have a fix your components on new updates.
@@ -57,7 +57,7 @@ Don't know what your operating system is? Here is a list to help you figure it o
 - Mac: `aarch64-apple-darwin`
 
 Is your operating system not listed here? Are you struggling to make the YASX ecosystem run on your machine?  
-You may look into building it yourself.
+You may look into [building it from source yourself](#building-from-source).
 
 ### Platform-specific instructions
 
@@ -74,7 +74,15 @@ If you are running YAST in a terminal, allow your terminal instead.
 
 ## Usage
 
+<div align="center">
+    <img src="https://raw.githubusercontent.com/wiki/yynaa/yast/yasle-0.1.0.png" height="500">
+</div>
+
 todo!()
+
+## Troubleshooting
+
+See the [troubleshooting wiki page](https://github.com/yynaa/yast/wiki/Troubleshooting)!
 
 ## Building from source
 
@@ -85,3 +93,15 @@ cargo build --release -p yast
 cargo build --release -p yasle
 # you can now find yast and yasle in target/release/yas[x]
 ```
+
+## Developing YASX components & libraries
+
+You may find information on components and libraries on the wiki pages related to both.  
+[Wiki: Developing Components](https://github.com/yynaa/yast/wiki/Developing-Components)  
+[Wiki: Developing Libraries](https://github.com/yynaa/yast/wiki/Developing-Libraries)
+
+## Contributing
+
+Thank you for your interested in contributing!
+You may find architecture & rationale information on
+the [contributing wiki page](https://github.com/yynaa/yast/wiki/Contributing)!
