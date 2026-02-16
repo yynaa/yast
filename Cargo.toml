@@ -4,9 +4,7 @@ edition = "2024"
 version = "0.1.0"
 
 [workspace]
-members = [
-  "crates/yast-core", "crates/yasle"
-]
+members = ["crates/yast-core", "crates/yasle", "crates/yast-windows"]
 
 [dependencies]
 yast-core = { workspace = true }
@@ -24,11 +22,12 @@ serde = { workspace = true }
 dirs = { workspace = true }
 include_dir = { workspace = true }
 
-[build-dependencies]
-include_dir = { workspace = true }
+[target.'cfg(windows)'.dependencies]
+yast-windows = { workspace = true }
 
 [workspace.dependencies]
 yast-core = { path = "crates/yast-core" }
+yast-windows = { path = "crates/yast-windows" }
 anyhow = "1.0.100"
 iced = { version = "0.14.0", features = ["advanced", "tokio", "image"] }
 iced_aw = { version = "0.13.0", features = ["context_menu"] }
@@ -37,7 +36,7 @@ log = "0.4.29"
 mlua = { version = "0.11.6", features = ["lua54", "vendored", "error-send", "anyhow"] }
 fern = { version = "0.7.1", features = ["colored"] }
 humantime = "2.3.0"
-handy-keys = "0.1.4"
+handy-keys = "0.2.0"
 rfd = "0.17.2"
 serde = "1.0.228"
 ron = "0.12.0"

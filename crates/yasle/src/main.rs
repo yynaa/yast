@@ -1,5 +1,5 @@
 use anyhow::Result;
-use handy_keys::{Hotkey, Key, KeyboardListener};
+use handy_keys::{Hotkey, Key, KeyboardListener, Modifiers};
 use include_dir::Dir;
 use livesplit_core::{Run, Segment, Timer};
 use strum::IntoEnumIterator;
@@ -21,6 +21,8 @@ use crate::{
   editor::component_editor,
   tree::{build_tree_from_layout_part, get_mut_component_at_path},
 };
+#[cfg(target_os = "windows")]
+use iced::keyboard;
 use iced::{
   Background, Color, Element, Length, Padding, Subscription, Task, Theme,
   alignment::Vertical,
@@ -67,6 +69,8 @@ pub struct App {
 #[derive(Clone, Debug)]
 pub enum AppMessage {
   Update,
+  #[cfg(target_os = "windows")]
+  KeyboardEvent(keyboard::Event),
 
   LoadLayoutOpenPicker,
   LoadLayout(String),
@@ -182,11 +186,46 @@ impl App {
         if let Some(event) = self.keyboard_listener.try_recv() {
           if self.hotkey_recorder.is_some() {
             if !event.is_key_down {
-              return Ok(Task::done(AppMessage::AssignHotkey(event.as_hotkey()?)));
+              let key = event.key;
+              let mut modifiers = Modifiers::empty();
+              for modifier in event.modifiers {
+                match modifier {
+                  Modifiers::CMD_LEFT => modifiers.insert(Modifiers::CMD),
+                  Modifiers::CMD_RIGHT => modifiers.insert(Modifiers::CMD),
+                  Modifiers::CTRL_LEFT => modifiers.insert(Modifiers::CTRL),
+                  Modifiers::CTRL_RIGHT => modifiers.insert(Modifiers::CTRL),
+                  Modifiers::OPT_LEFT => modifiers.insert(Modifiers::OPT),
+                  Modifiers::OPT_RIGHT => modifiers.insert(Modifiers::OPT),
+                  Modifiers::SHIFT_LEFT => modifiers.insert(Modifiers::SHIFT),
+                  Modifiers::SHIFT_RIGHT => modifiers.insert(Modifiers::SHIFT),
+                  other => modifiers.insert(other)
+                }
+              }
+
+              return Ok(Task::done(AppMessage::AssignHotkey(Hotkey::new(modifiers, key)?)));
             }
           }
         }
 
+        Ok(Task::none())
+      }
+      #[cfg(target_os = "windows")]
+      AppMessage::KeyboardEvent(event) => {
+        use yast_windows;
+        if let keyboard::Event::KeyReleased {
+          key: _,
+          modified_key: _,
+          physical_key: _,
+          location: _,
+          modifiers: _,
+        } = event
+        {
+          if let Some(translated_hotkey) = yast_windows::translate_event_to_hotkey(event)? {
+            if self.hotkey_recorder.is_some() {
+              return Ok(Task::done(AppMessage::AssignHotkey(translated_hotkey)));
+            }
+          }
+        }
         Ok(Task::none())
       }
       AppMessage::LoadLayoutOpenPicker => {
@@ -675,8 +714,17 @@ impl App {
     format!("YASLE {}", VERSION)
   }
 
+  #[cfg(not(target_os = "windows"))]
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
+      every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
+    ])
+  }
+
+  #[cfg(target_os = "windows")]
+  fn subscription(&self) -> Subscription<AppMessage> {
+    Subscription::batch(vec![
+      keyboard::listen().map(AppMessage::KeyboardEvent),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
   }

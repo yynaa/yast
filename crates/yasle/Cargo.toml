@@ -16,3 +16,6 @@ livesplit-core = { workspace = true }
 handy-keys = { workspace = true }
 strum = { workspace = true }
 include_dir = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+yast-windows = { workspace = true }

@@ -1,0 +1,8 @@
+[package]
+name = "yast-windows"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+handy-keys = { workspace = true }
+iced = { workspace = true }

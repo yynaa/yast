@@ -12,6 +12,8 @@ use yast_core::{
 #[macro_use]
 extern crate log;
 
+#[cfg(target_os = "windows")]
+use iced::keyboard;
 use iced::{
   Background, Color, Element, Length, Size, Subscription, Task, Theme,
   time::every,
@@ -57,6 +59,8 @@ pub enum AppMessage {
 
   WindowClosing(window::Id),
   WindowResized((window::Id, Size)),
+  #[cfg(target_os = "windows")]
+  KeyboardEvent(keyboard::Event),
   ResizeTimer(f32, f32),
 
   ToggleHotkeys,
@@ -204,6 +208,68 @@ impl App {
       AppMessage::WindowClosing(_id) => {
         info!("closing YAST");
         Ok(iced::exit())
+      }
+      #[cfg(target_os = "windows")]
+      AppMessage::KeyboardEvent(event) => {
+        use yast_windows;
+        if let keyboard::Event::KeyPressed {
+          key: _,
+          modified_key: _,
+          physical_key: _,
+          location: _,
+          modifiers: _,
+          text: _,
+          repeat: _,
+        } = event
+        {
+          if let Some(translated_hotkey) = yast_windows::translate_event_to_hotkey(event)? {
+            for (action, hotkey) in &self.layout.hotkeys {
+              if *hotkey == translated_hotkey {
+                let mut timer = self
+                  .timer
+                  .write()
+                  .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
+                match action {
+                  HotkeyAction::StartOrSplitTimer => {
+                    timer.split_or_start();
+                  }
+                  HotkeyAction::StartTimer => {
+                    timer.start();
+                  }
+                  HotkeyAction::SplitTimer => {
+                    timer.split();
+                  }
+                  HotkeyAction::ResetTimerWithoutSaving => {
+                    timer.reset(false);
+                  }
+                  HotkeyAction::ResetTimer => {
+                    timer.reset(true);
+                  }
+                  HotkeyAction::SkipSplit => {
+                    timer.skip_split();
+                  }
+                  HotkeyAction::UndoSplit => {
+                    timer.undo_split();
+                  }
+                  HotkeyAction::PauseTimer => {
+                    timer.toggle_pause();
+                  }
+                  HotkeyAction::ToggleTimingMethod => {
+                    timer.toggle_timing_method();
+                  }
+                  HotkeyAction::NextComparison => {
+                    timer.switch_to_next_comparison();
+                  }
+                  HotkeyAction::PreviousComparison => {
+                    timer.switch_to_previous_comparison();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        Ok(Task::none())
       }
       AppMessage::ResizeTimer(w, h) => Ok(window::resize(
         self.window_id.expect("no window id stored in app"),
@@ -463,10 +529,21 @@ impl App {
     format!("YAST {}", VERSION)
   }
 
+  #[cfg(not(target_os = "windows"))]
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
       window::resize_events().map(AppMessage::WindowResized),
       window::close_requests().map(AppMessage::WindowClosing),
+      every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
+    ])
+  }
+
+  #[cfg(target_os = "windows")]
+  fn subscription(&self) -> Subscription<AppMessage> {
+    Subscription::batch(vec![
+      window::resize_events().map(AppMessage::WindowResized),
+      window::close_requests().map(AppMessage::WindowClosing),
+      keyboard::listen().map(AppMessage::KeyboardEvent),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
   }

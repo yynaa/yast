@@ -1,5 +1,6 @@
 /target
 .zed
+.idea
 **/*.yasl
 **/*.lss
 **/*.log
