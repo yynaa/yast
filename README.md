@@ -48,13 +48,17 @@
 > or [other means](https://yyna.xyz/c)!  
 > Thank you so much!
 
+> [!WARNING]
+> I currently cannot provide Mac builds
+> ~~because I couldn't get myself to download Xcode and I am a diehard Linux user~~.  
+> You will need to [build it yourself](#building-from-source) for Macs.
+
 Head over to the [releases](https://github.com/yynaa/yast/releases), find your operating system, and off you go!
 
 Don't know what your operating system is? Here is a list to help you figure it out:
 
-- Windows: `x86_64-pc-windows-gnu`
-- Linux: `x86_64-unknown-linux-gnu`
-- Mac: `aarch64-apple-darwin`
+- Windows 64-bit: `x86_64-pc-windows-gnu`
+- Linux 64-bit: `x86_64-unknown-linux-gnu`
 
 Is your operating system not listed here? Are you struggling to make the YASX ecosystem run on your machine?  
 You may look into [building it from source yourself](#building-from-source).
@@ -85,6 +89,8 @@ todo!()
 See the [troubleshooting wiki page](https://github.com/yynaa/yast/wiki/Troubleshooting)!
 
 ## Building from source
+
+You will need to install [Rust](https://rust-lang.org/tools/install/).
 
 ```sh
 git clone https://github.com/yynaa/yast
