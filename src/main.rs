@@ -232,6 +232,7 @@ impl App {
                 .save_file();
               if let Some(path) = result {
                 self.save_splits(path.to_string_lossy().to_string())?;
+                self.splits_edited = false;
               }
             }
             MessageDialogResult::Cancel => {
@@ -244,7 +245,7 @@ impl App {
         if closing && self.layout_edited {
           let result = MessageDialog::new()
             .set_title("Save Layout?")
-            .set_description("Layout hasn't been saved. Would you like to save them?")
+            .set_description("Layout hasn't been saved. Would you like to save it?")
             .set_buttons(MessageButtons::YesNoCancel)
             .show();
 
@@ -256,6 +257,7 @@ impl App {
                 .save_file();
               if let Some(path) = result {
                 self.layout.save(&path.to_string_lossy().to_string())?;
+                self.layout_edited = false;
               }
             }
             MessageDialogResult::Cancel => {

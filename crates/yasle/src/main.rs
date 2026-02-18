@@ -28,7 +28,9 @@ use iced::{
   alignment::Vertical,
   time::every,
   widget::{button, column, combo_box, container, image, row, space, stack, text, text_input},
+  window,
 };
+use rfd::{MessageButtons, MessageDialog, MessageDialogResult};
 use std::{
   backtrace::BacktraceStatus,
   collections::HashMap,
@@ -52,6 +54,7 @@ pub struct App {
   lua_context: LuaContext,
   pub layout: Layout,
   pub repository: Repository,
+  pub layout_edited: bool,
 
   pub dummy_timer: Timer,
 
@@ -69,6 +72,7 @@ pub struct App {
 #[derive(Clone, Debug)]
 pub enum AppMessage {
   Update,
+  WindowClosing(window::Id),
   #[cfg(target_os = "windows")]
   KeyboardEvent(keyboard::Event),
 
@@ -144,6 +148,7 @@ impl App {
         lua_context,
         layout: Layout::default(),
         repository,
+        layout_edited: false,
         dummy_timer: timer,
 
         screen: AppScreen::LayoutEditor,
@@ -198,16 +203,52 @@ impl App {
                   Modifiers::OPT_RIGHT => modifiers.insert(Modifiers::OPT),
                   Modifiers::SHIFT_LEFT => modifiers.insert(Modifiers::SHIFT),
                   Modifiers::SHIFT_RIGHT => modifiers.insert(Modifiers::SHIFT),
-                  other => modifiers.insert(other)
+                  other => modifiers.insert(other),
                 }
               }
 
-              return Ok(Task::done(AppMessage::AssignHotkey(Hotkey::new(modifiers, key)?)));
+              return Ok(Task::done(AppMessage::AssignHotkey(Hotkey::new(
+                modifiers, key,
+              )?)));
             }
           }
         }
 
         Ok(Task::none())
+      }
+      AppMessage::WindowClosing(_id) => {
+        let mut task = Task::none();
+        let mut closing = true;
+
+        if closing && self.layout_edited {
+          let result = MessageDialog::new()
+            .set_title("Save Layout?")
+            .set_description("Layout hasn't been saved. Would you like to save it?")
+            .set_buttons(MessageButtons::YesNoCancel)
+            .show();
+
+          match result {
+            MessageDialogResult::No => {}
+            MessageDialogResult::Yes => {
+              let result = rfd::FileDialog::new()
+                .add_filter("YAST Layout", &["yasl"])
+                .save_file();
+              if let Some(path) = result {
+                self.layout.save(&path.to_string_lossy().to_string())?;
+              }
+            }
+            MessageDialogResult::Cancel => {
+              closing = false;
+            }
+            _ => unreachable!(),
+          }
+        }
+
+        if closing {
+          task = task.chain(iced::exit());
+        }
+
+        Ok(task)
       }
       #[cfg(target_os = "windows")]
       AppMessage::KeyboardEvent(event) => {
@@ -362,6 +403,7 @@ impl App {
           .settings
           .insert(path_child.clone(), param_defaults);
 
+        self.layout_edited = true;
         if let Some(lcontent) = &mut self.layout.content {
           let parent = get_mut_component_at_path(lcontent, path.clone())?;
           parent.children.push(new_component);
@@ -380,9 +422,11 @@ impl App {
             let parent = get_mut_component_at_path(lcontent, path.clone())?;
             parent.children.remove(last_path_element);
             self.opened_component.pop();
+            self.layout_edited = true;
             Ok(Task::none())
           } else {
             self.layout.content = None;
+            self.layout_edited = true;
             Ok(Task::none())
           }
         } else {
@@ -391,10 +435,12 @@ impl App {
       }
       AppMessage::MoveComponentUp(path) => {
         let new_pos = self.layout.component_move_up(path)?;
+        self.layout_edited = true;
         Ok(Task::done(AppMessage::OpenComponent(new_pos)))
       }
       AppMessage::MoveComponentDown(path) => {
         let new_pos = self.layout.component_move_down(path)?;
+        self.layout_edited = true;
         Ok(Task::done(AppMessage::OpenComponent(new_pos)))
       }
       AppMessage::ModifyParameterBoolean(path, param, value) => {
@@ -406,6 +452,7 @@ impl App {
             "couldn't find component in layout from path",
           ))?;
         comp_settings.insert(param, SettingsValue::Boolean(value));
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterString(path, param, value) => {
@@ -417,6 +464,7 @@ impl App {
             "couldn't find component in layout from path",
           ))?;
         comp_settings.insert(param, SettingsValue::String(value));
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterOptions(path, param, value) => {
@@ -428,6 +476,7 @@ impl App {
             "couldn't find component in layout from path",
           ))?;
         comp_settings.insert(param, SettingsValue::Options(value));
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterNumber(path, param, value) => {
@@ -441,6 +490,7 @@ impl App {
         if let Ok(parsed) = value.parse::<f64>() {
           comp_settings.insert(param, SettingsValue::Number(parsed));
         }
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterNumberRange(path, param, value) => {
@@ -452,6 +502,7 @@ impl App {
             "couldn't find component in layout from path",
           ))?;
         comp_settings.insert(param, SettingsValue::NumberRange(value));
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterColor(path, param, index, value) => {
@@ -470,6 +521,7 @@ impl App {
             }
           }
         }
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::ModifyParameterImageOpen(path, param) => {
@@ -507,6 +559,7 @@ impl App {
           .repository
           .layout_images
           .insert((path, param), Some(image::Handle::from_bytes(bytes)));
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::StartRecordingHotkey(action) => {
@@ -530,6 +583,7 @@ impl App {
         }
 
         self.hotkey_recorder = None;
+        self.layout_edited = true;
         Ok(Task::none())
       }
     }
@@ -717,6 +771,7 @@ impl App {
   #[cfg(not(target_os = "windows"))]
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
+      window::close_requests().map(AppMessage::WindowClosing),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
   }
@@ -724,6 +779,7 @@ impl App {
   #[cfg(target_os = "windows")]
   fn subscription(&self) -> Subscription<AppMessage> {
     Subscription::batch(vec![
+      window::close_events().map(AppMessage::WindowClosing),
       keyboard::listen().map(AppMessage::KeyboardEvent),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
@@ -737,6 +793,7 @@ pub fn run_app() -> iced::Result {
     .title(App::title)
     .theme(Theme::Dark)
     .subscription(App::subscription)
+    .exit_on_close_request(false)
     .run()
 }
 
