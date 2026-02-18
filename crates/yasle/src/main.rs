@@ -316,6 +316,7 @@ impl App {
       }
       AppMessage::SaveLayout(path) => {
         self.layout.save(&path)?;
+        self.layout_edited = false;
         info!("saved layout");
         Ok(Task::none())
       }
