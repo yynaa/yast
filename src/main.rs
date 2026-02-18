@@ -28,6 +28,7 @@ use livesplit_core::{
     saver::livesplit::{IoWrite, save_timer},
   },
 };
+use rfd::{MessageButtons, MessageDialog, MessageDialogResult};
 use std::{
   collections::HashMap,
   fs::{self, File, read_to_string},
@@ -50,6 +51,8 @@ pub struct App {
   pub timer: SharedTimer,
   #[allow(unused)]
   autosplitter: Runtime,
+  splits_edited: bool,
+  layout_edited: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -118,6 +121,9 @@ impl App {
 
         timer,
         autosplitter,
+
+        splits_edited: false,
+        layout_edited: false,
       },
       window::latest().map(AppMessage::Init),
     )
@@ -174,6 +180,7 @@ impl App {
                 timer.reset(false);
               }
               HotkeyAction::ResetTimer => {
+                self.splits_edited = true;
                 timer.reset(true);
               }
               HotkeyAction::SkipSplit => {
@@ -203,11 +210,66 @@ impl App {
       AppMessage::WindowResized((_id, size)) => {
         self.layout.width = size.width;
         self.layout.height = size.height;
+        self.layout_edited = true;
         Ok(Task::none())
       }
       AppMessage::WindowClosing(_id) => {
-        info!("closing YAST");
-        Ok(iced::exit())
+        let mut task = Task::none();
+        let mut closing = true;
+
+        if closing && self.splits_edited {
+          let result = MessageDialog::new()
+            .set_title("Save Splits?")
+            .set_description("Splits haven't been saved. Would you like to save them?")
+            .set_buttons(MessageButtons::YesNoCancel)
+            .show();
+
+          match result {
+            MessageDialogResult::No => {}
+            MessageDialogResult::Yes => {
+              let result = rfd::FileDialog::new()
+                .add_filter("LiveSplit Splits", &["lss"])
+                .save_file();
+              if let Some(path) = result {
+                self.save_splits(path.to_string_lossy().to_string())?;
+              }
+            }
+            MessageDialogResult::Cancel => {
+              closing = false;
+            }
+            _ => unreachable!(),
+          }
+        }
+
+        if closing && self.layout_edited {
+          let result = MessageDialog::new()
+            .set_title("Save Layout?")
+            .set_description("Layout hasn't been saved. Would you like to save them?")
+            .set_buttons(MessageButtons::YesNoCancel)
+            .show();
+
+          match result {
+            MessageDialogResult::No => {}
+            MessageDialogResult::Yes => {
+              let result = rfd::FileDialog::new()
+                .add_filter("YAST Layout", &["yasl"])
+                .save_file();
+              if let Some(path) = result {
+                self.layout.save(&path.to_string_lossy().to_string())?;
+              }
+            }
+            MessageDialogResult::Cancel => {
+              closing = false;
+            }
+            _ => unreachable!(),
+          }
+        }
+
+        if closing {
+          task = task.chain(iced::exit());
+        }
+
+        Ok(task)
       }
       #[cfg(target_os = "windows")]
       AppMessage::KeyboardEvent(event) => {
@@ -337,15 +399,7 @@ impl App {
         Ok(future)
       }
       AppMessage::SaveSplits(path) => {
-        let file = File::create(path)?;
-        let writer = BufWriter::new(file);
-        {
-          let timer = self
-            .timer
-            .read()
-            .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
-          save_timer(&timer, IoWrite(writer))?;
-        }
+        self.save_splits(path)?;
         info!("saved splits");
         Ok(Task::none())
       }
@@ -544,6 +598,19 @@ impl App {
       keyboard::listen().map(AppMessage::KeyboardEvent),
       every(Duration::from_secs_f64(1.0 / 60.0)).map(|_| AppMessage::Update),
     ])
+  }
+
+  fn save_splits(&self, path: String) -> Result<()> {
+    let file = File::create(path)?;
+    let writer = BufWriter::new(file);
+    {
+      let timer = self
+        .timer
+        .read()
+        .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
+      save_timer(&timer, IoWrite(writer))?;
+    }
+    Ok(())
   }
 }
 
