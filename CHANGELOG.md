@@ -9,6 +9,12 @@
 
 ## YAST - `yast`
 
+### **0.1.1** - 2026-02-27
+
+#### Added
+
+- Confirmation before closing for saving splits/layout
+
 ### **0.1.0** - 2026-02-16
 
 #### Added
@@ -19,6 +25,12 @@
 - Global Hotkeys
 
 ## YASLE - `yasle`
+
+### **0.1.1** - 2026-02-27
+
+#### Added
+
+- Confirmation before closing for saving layout
 
 ### **0.1.0** - 2026-02-16
 
@@ -51,5 +63,5 @@
 
 | `yast` | `yasle` | `yast-core` | `yast-windows` |
 |:-------|:--------|:------------|:---------------|
+| 0.1.1  | 0.1.1   | 0.1.0       | 0.1.0          |
 | 0.1.0  | 0.1.0   | 0.1.0       | 0.1.0          |
-
