@@ -24,7 +24,7 @@ use crate::{
 #[cfg(target_os = "windows")]
 use iced::keyboard;
 use iced::{
-  Background, Color, Element, Length, Padding, Subscription, Task, Theme,
+  Background, Color, Element, Length, Padding, Settings, Subscription, Task, Theme,
   alignment::Vertical,
   time::every,
   widget::{button, column, combo_box, container, image, row, space, stack, text, text_input},
@@ -797,6 +797,10 @@ pub fn run_app() -> iced::Result {
     .theme(Theme::Dark)
     .subscription(App::subscription)
     .exit_on_close_request(false)
+    .settings(Settings {
+      id: Some(String::from("yasle")),
+      ..Default::default()
+    })
     .run()
 }
 

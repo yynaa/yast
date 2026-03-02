@@ -1,5 +1,6 @@
 use anyhow::Result;
 use handy_keys::{HotkeyId, HotkeyManager};
+use image::ImageFormat;
 use include_dir::Dir;
 use yast_core::{
   defaults::copy_default_components,
@@ -14,10 +15,10 @@ extern crate log;
 #[cfg(target_os = "windows")]
 use iced::keyboard;
 use iced::{
-  Background, Color, Element, Length, Size, Subscription, Task, Theme,
+  Background, Color, Element, Length, Settings, Size, Subscription, Task, Theme,
   time::every,
   widget::{container, mouse_area, space, stack, text},
-  window,
+  window::{self, icon},
 };
 use livesplit_core::{
   Run, Segment, SharedTimer, Timer,
@@ -214,7 +215,17 @@ pub fn run_app() -> iced::Result {
     .subscription(App::subscription)
     .title(App::title)
     .theme(Theme::Dark)
-    .exit_on_close_request(false)
+    .window(window::Settings {
+      exit_on_close_request: false,
+      icon: Some(
+        icon::from_file_data(include_bytes!("../res/icon.png"), Some(ImageFormat::Png)).unwrap(),
+      ),
+      ..Default::default()
+    })
+    .settings(Settings {
+      id: Some(String::from("yast")),
+      ..Default::default()
+    })
     .run()
 }
 
