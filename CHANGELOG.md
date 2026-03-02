@@ -48,6 +48,7 @@
 
 - `time` library modified
   - See the library's documentation for more information
+- Logging functions for Lua
 
 #### Changed
 

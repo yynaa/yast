@@ -1,3 +1,11 @@
+--- @class log
+--- @field debug fun(msg: string)
+--- @field trace fun(msg: string)
+--- @field info fun(msg: string)
+--- @field warn fun(msg: string)
+--- @field error fun(msg: string)
+log = {}
+
 --- Function that represents whether or not an entry should be shown.
 --- If it is nil, it means the entry will always be shown.
 --- @alias show_if (fun(s: settings): boolean)|nil
