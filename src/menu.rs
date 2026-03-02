@@ -4,16 +4,15 @@ use std::{
 };
 
 use anyhow::Result;
-use handy_keys::Hotkey;
 use iced::{
   Background, Color, Element, Length, Task,
   alignment::Horizontal,
   widget::{button, column, container, opaque, row, space, stack, text},
 };
 use livesplit_core::{Timer, auto_splitting::Runtime, run::parser};
-use yast_core::layout::{HotkeyAction, Layout};
+use yast_core::layout::Layout;
 
-use crate::{App, AppMessage, VERSION};
+use crate::{App, AppMessage};
 
 pub struct Menu {
   pub opened: bool,

@@ -11,11 +11,11 @@ local function build_segment_background(segment_index)
 
 	if snapshot.current_split ~= nil and segment_index == snapshot.current_split then
 		return widgets
-			.container(widgets.space():width("shrink"):height("fill"):into())
+			.container(widgets.space():width("fill"):height("fill"):into())
 			:style({ 0, 0, 0, 0 }, setting("Current Segment Background Color"))
 			:into()
 	else
-		return widgets.space():width("shrink"):height("fill"):into()
+		return widgets.space():width("fill"):height("fill"):into()
 	end
 end
 
