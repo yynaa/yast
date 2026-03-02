@@ -66,7 +66,10 @@ local function build_segment_column(segment_index, column_index)
 		if setting("Column " .. math.tointeger(column_index) .. " Comparison") ~= "Current Comparison" then
 			comparison = setting("Column " .. math.tointeger(column_index) .. " Comparison")
 		end
-		local timing_method = setting("Column " .. math.tointeger(column_index) .. " Timing Method")
+		local timing_method = snapshot.current_timing_method
+		if setting("Column " .. math.tointeger(column_index) .. " Comparison") ~= "Current Comparison" then
+			timing_method = setting("Column " .. math.tointeger(column_index) .. " Timing Method")
+		end
 		if text_type == "Split Time" then
 			text_content = time.format(
 				time.live_split_time(segment_index, comparison, timing_method),
@@ -149,7 +152,7 @@ return {
 					"Current Comparison",
 					show_if
 				)
-				:options("Column " .. i .. " Timing Method", { "RealTime", "GameTime" }, "RealTime", show_if)
+				:options("Column " .. i .. " Timing Method", { "Current", "RealTime", "GameTime" }, "Current", show_if)
 				:number_range("Column " .. i .. " Decimals", 0, 3, 1, 1, show_if)
 		end
 

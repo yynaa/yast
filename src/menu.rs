@@ -1,4 +1,5 @@
 use std::{
+  fmt::Display,
   fs::{self, read_to_string},
   path::Path,
 };
@@ -7,15 +8,17 @@ use anyhow::Result;
 use iced::{
   Background, Color, Element, Length, Task,
   alignment::Horizontal,
-  widget::{button, column, container, opaque, row, space, stack, text},
+  widget::{button, column, combo_box, container, opaque, row, space, stack, text},
 };
-use livesplit_core::{Timer, auto_splitting::Runtime, run::parser};
+use livesplit_core::{Timer, TimingMethod, auto_splitting::Runtime, run::parser};
 use yast_core::layout::Layout;
 
 use crate::{App, AppMessage};
 
 pub struct Menu {
   pub opened: bool,
+  comparison_state: combo_box::State<String>,
+  timing_method_state: combo_box::State<TimingMethodOption>,
 }
 
 #[derive(Clone, Debug)]
@@ -33,11 +36,54 @@ pub enum MenuMessage {
   SaveLayout(String),
   LoadAutosplitterOpenPicker,
   LoadAutosplitter(String),
+
+  ChangeComparison(String),
+  ChangeTimingMethod(TimingMethodOption),
+}
+
+#[derive(Clone, Debug)]
+pub enum TimingMethodOption {
+  RealTime,
+  GameTime,
+}
+
+impl Display for TimingMethodOption {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      Self::RealTime => "Real Time",
+      Self::GameTime => "Game Time",
+    })
+  }
+}
+
+impl From<TimingMethod> for TimingMethodOption {
+  fn from(value: TimingMethod) -> Self {
+    match value {
+      TimingMethod::RealTime => TimingMethodOption::RealTime,
+      TimingMethod::GameTime => TimingMethodOption::GameTime,
+    }
+  }
+}
+
+impl Into<TimingMethod> for TimingMethodOption {
+  fn into(self) -> TimingMethod {
+    match self {
+      TimingMethodOption::RealTime => TimingMethod::RealTime,
+      TimingMethodOption::GameTime => TimingMethod::GameTime,
+    }
+  }
 }
 
 impl Menu {
-  pub fn new() -> Self {
-    Self { opened: false }
+  pub fn new(comparisons: Vec<String>) -> Self {
+    Self {
+      opened: false,
+      comparison_state: combo_box::State::new(comparisons),
+      timing_method_state: combo_box::State::new(vec![
+        TimingMethodOption::RealTime,
+        TimingMethodOption::GameTime,
+      ]),
+    }
   }
 
   pub fn update(app: &mut App, message: MenuMessage) -> Result<Task<AppMessage>> {
@@ -86,6 +132,8 @@ impl Menu {
         let category_name = parsed_run.run.category_name().to_string();
         let timer = Timer::new(parsed_run.run)?;
         app.repository.update_from_splits(timer.run())?;
+        app.menu.comparison_state =
+          combo_box::State::new(timer.run().comparisons().map(|f| f.to_string()).collect());
         app.timer = timer.into_shared();
         app.autosplitter = Runtime::new(app.timer.clone());
         info!("loaded splits: {} - {}", game_name, category_name);
@@ -190,6 +238,20 @@ impl Menu {
         info!("loaded autosplitter");
         Ok(Task::none())
       }
+      MenuMessage::ChangeComparison(comp) => {
+        if let Ok(mut timer) = app.timer.write() {
+          timer
+            .set_current_comparison(comp)
+            .map_err(|_| anyhow::Error::msg("couldn't set current comparison from menu"))?;
+        }
+        Ok(Task::none())
+      }
+      MenuMessage::ChangeTimingMethod(tm) => {
+        if let Ok(mut timer) = app.timer.write() {
+          timer.set_current_timing_method(tm.into());
+        }
+        Ok(Task::none())
+      }
     }
   }
 
@@ -250,7 +312,29 @@ impl Menu {
     children.push(hotkey_button.into());
 
     for (action, hotkey) in &app.layout.hotkeys {
-      children.push(text(format!("{:?}: {}", action, hotkey)).size(8.).into());
+      children.push(text(format!("{:?}: {}", action, hotkey)).size(10.).into());
+    }
+
+    if let Ok(timer) = app.timer.read() {
+      children.push(
+        combo_box(
+          &app.menu.comparison_state,
+          "Comparison",
+          Some(&timer.current_comparison().to_string()),
+          |s| AppMessage::MenuMessage(MenuMessage::ChangeComparison(s)),
+        )
+        .into(),
+      );
+
+      children.push(
+        combo_box(
+          &app.menu.timing_method_state,
+          "Timing Method",
+          Some(&TimingMethodOption::from(timer.current_timing_method())),
+          |s| AppMessage::MenuMessage(MenuMessage::ChangeTimingMethod(s)),
+        )
+        .into(),
+      );
     }
 
     let content = stack(vec![

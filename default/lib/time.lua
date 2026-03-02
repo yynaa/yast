@@ -71,7 +71,7 @@ end
 --- @return number
 local function timing_accessor(accessor, timing_method)
 	if timing_method == nil then
-		timing_method = "RealTime"
+		timing_method = snapshot.current_timing_method
 	end
 	if timing_method == "GameTime" then
 		return accessor.game_time

@@ -71,6 +71,7 @@ impl App {
 
     let mut run = Run::new();
     run.push_segment(Segment::new(""));
+    let comparisons = run.comparisons().map(|f| f.to_string()).collect();
     let timer = Timer::new(run)
       .expect("couldn't initialize timer")
       .into_shared();
@@ -108,7 +109,7 @@ impl App {
 
         splits_edited: false,
 
-        menu: Menu::new(),
+        menu: Menu::new(comparisons),
       },
       window::latest().map(AppMessage::Init),
     )
