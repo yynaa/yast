@@ -1,6 +1,5 @@
 use anyhow::Result;
-use handy_keys::{HotkeyId, HotkeyManager, HotkeyState};
-use iced_aw::ContextMenu;
+use handy_keys::{HotkeyId, HotkeyManager};
 use include_dir::Dir;
 use yast_core::{
   defaults::copy_default_components,
@@ -17,25 +16,21 @@ use iced::keyboard;
 use iced::{
   Background, Color, Element, Length, Size, Subscription, Task, Theme,
   time::every,
-  widget::{button, column, container, space, stack, text},
+  widget::{container, mouse_area, space, stack, text},
   window,
 };
 use livesplit_core::{
   Run, Segment, SharedTimer, Timer,
   auto_splitting::Runtime,
-  run::{
-    parser,
-    saver::livesplit::{IoWrite, save_timer},
-  },
+  run::saver::livesplit::{IoWrite, save_timer},
 };
-use rfd::{MessageButtons, MessageDialog, MessageDialogResult};
-use std::{
-  collections::HashMap,
-  fs::{self, File, read_to_string},
-  io::BufWriter,
-  path::Path,
-  time::{Duration, SystemTime},
-};
+use std::time::Duration;
+use std::{collections::HashMap, fs::File, io::BufWriter, time::SystemTime};
+
+use crate::menu::{Menu, MenuMessage};
+
+mod menu;
+mod update;
 
 static VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -52,7 +47,7 @@ pub struct App {
   #[allow(unused)]
   autosplitter: Runtime,
   splits_edited: bool,
-  layout_edited: bool,
+  menu: Menu,
 }
 
 #[derive(Clone, Debug)]
@@ -66,18 +61,7 @@ pub enum AppMessage {
   KeyboardEvent(keyboard::Event),
   ResizeTimer(f32, f32),
 
-  ToggleHotkeys,
-
-  LoadSplitsOpenPicker,
-  LoadSplits(String),
-  SaveSplitsOpenPicker,
-  SaveSplits(String),
-  LoadLayoutOpenPicker,
-  LoadLayout(String),
-  SaveLayoutOpenPicker,
-  SaveLayout(String),
-  LoadAutosplitterOpenPicker,
-  LoadAutosplitter(String),
+  MenuMessage(MenuMessage),
 }
 
 impl App {
@@ -123,338 +107,11 @@ impl App {
         autosplitter,
 
         splits_edited: false,
-        layout_edited: false,
+
+        menu: Menu::new(),
       },
       window::latest().map(AppMessage::Init),
     )
-  }
-
-  fn update_handler(&mut self, message: AppMessage) -> Task<AppMessage> {
-    match &message {
-      AppMessage::Update => {}
-      anything => {
-        trace!("action: {:?}", anything);
-      }
-    }
-
-    self.update(message.clone()).unwrap_or_else(|err| {
-      error!(
-        "error occured updating message {:?}: {}",
-        message.clone(),
-        err
-      );
-      Task::none()
-    })
-  }
-
-  fn handle_hotkey(&mut self, action: HotkeyAction) -> Result<()> {
-    let mut timer = self
-      .timer
-      .write()
-      .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
-
-    match action {
-      HotkeyAction::StartOrSplitTimer => {
-        timer.split_or_start();
-      }
-      HotkeyAction::StartTimer => {
-        timer.start();
-      }
-      HotkeyAction::SplitTimer => {
-        timer.split();
-      }
-      HotkeyAction::ResetTimerWithoutSaving => {
-        timer.reset(false);
-      }
-      HotkeyAction::ResetTimer => {
-        self.splits_edited = true;
-        timer.reset(true);
-      }
-      HotkeyAction::SkipSplit => {
-        timer.skip_split();
-      }
-      HotkeyAction::UndoSplit => {
-        timer.undo_split();
-      }
-      HotkeyAction::PauseTimer => {
-        timer.toggle_pause();
-      }
-      HotkeyAction::ToggleTimingMethod => {
-        timer.toggle_timing_method();
-      }
-      HotkeyAction::NextComparison => {
-        timer.switch_to_next_comparison();
-      }
-      HotkeyAction::PreviousComparison => {
-        timer.switch_to_previous_comparison();
-      }
-    }
-
-    Ok(())
-  }
-
-  fn update(&mut self, message: AppMessage) -> Result<Task<AppMessage>> {
-    match message {
-      AppMessage::Init(id) => {
-        self.window_id = id;
-        Ok(Task::none())
-      }
-      AppMessage::Update => {
-        if let Some(event) = self.hotkey_manager.try_recv() {
-          if let HotkeyState::Pressed = event.state {
-            let hotkey = self
-              .hotkeys
-              .get(&event.id)
-              .ok_or(anyhow::Error::msg(format!(
-                "couldn't get hotkey {:?}",
-                &event.id
-              )))?
-              .clone();
-            self.handle_hotkey(hotkey)?;
-          }
-        }
-
-        Ok(Task::none())
-      }
-      AppMessage::WindowResized((_id, size)) => {
-        self.layout.width = size.width;
-        self.layout.height = size.height;
-        self.layout_edited = true;
-        Ok(Task::none())
-      }
-      AppMessage::WindowClosing(_id) => {
-        let mut task = Task::none();
-        let mut closing = true;
-
-        if closing && self.splits_edited {
-          let result = MessageDialog::new()
-            .set_title("Save Splits?")
-            .set_description("Splits haven't been saved. Would you like to save them?")
-            .set_buttons(MessageButtons::YesNoCancel)
-            .show();
-
-          match result {
-            MessageDialogResult::No => {}
-            MessageDialogResult::Yes => {
-              let result = rfd::FileDialog::new()
-                .add_filter("LiveSplit Splits", &["lss"])
-                .save_file();
-              if let Some(path) = result {
-                self.save_splits(path.to_string_lossy().to_string())?;
-                self.splits_edited = false;
-              }
-            }
-            MessageDialogResult::Cancel => {
-              closing = false;
-            }
-            _ => unreachable!(),
-          }
-        }
-
-        if closing && self.layout_edited {
-          let result = MessageDialog::new()
-            .set_title("Save Layout?")
-            .set_description("Layout hasn't been saved. Would you like to save it?")
-            .set_buttons(MessageButtons::YesNoCancel)
-            .show();
-
-          match result {
-            MessageDialogResult::No => {}
-            MessageDialogResult::Yes => {
-              let result = rfd::FileDialog::new()
-                .add_filter("YAST Layout", &["yasl"])
-                .save_file();
-              if let Some(path) = result {
-                self.layout.save(&path.to_string_lossy().to_string())?;
-                self.layout_edited = false;
-              }
-            }
-            MessageDialogResult::Cancel => {
-              closing = false;
-            }
-            _ => unreachable!(),
-          }
-        }
-
-        if closing {
-          task = task.chain(iced::exit());
-        }
-
-        Ok(task)
-      }
-      #[cfg(target_os = "windows")]
-      AppMessage::KeyboardEvent(event) => {
-        use yast_windows;
-        if let keyboard::Event::KeyPressed {
-          key: _,
-          modified_key: _,
-          physical_key: _,
-          location: _,
-          modifiers: _,
-          text: _,
-          repeat: _,
-        } = event
-        {
-          if let Some(translated_hotkey) = yast_windows::translate_event_to_hotkey(event)? {
-            for (action, hotkey) in &self.layout.hotkeys {
-              if *hotkey == translated_hotkey {
-                self.handle_hotkey(action.clone())?;
-                break;
-              }
-            }
-          }
-        }
-
-        Ok(Task::none())
-      }
-      AppMessage::ResizeTimer(w, h) => Ok(window::resize(
-        self.window_id.expect("no window id stored in app"),
-        Size::new(w, h),
-      )),
-      AppMessage::ToggleHotkeys => {
-        for (id, _) in self.hotkeys.drain() {
-          self.hotkey_manager.unregister(id)?;
-        }
-
-        if !self.hotkeys_on {
-          for (action, hotkey) in &self.layout.hotkeys {
-            self.hotkeys.insert(
-              self.hotkey_manager.register(hotkey.clone())?,
-              action.clone(),
-            );
-          }
-        }
-
-        self.hotkeys_on = !self.hotkeys_on;
-
-        Ok(Task::none())
-      }
-      AppMessage::LoadSplitsOpenPicker => {
-        let future = Task::future(
-          rfd::AsyncFileDialog::new()
-            .add_filter("Compatible Splits", &["lss"])
-            .pick_file(),
-        )
-        .then(|handle| match handle {
-          Some(handle) => {
-            let file_path = handle.path().to_string_lossy().to_string();
-            Task::done(AppMessage::LoadSplits(file_path))
-          }
-          None => Task::none(),
-        });
-        Ok(future)
-      }
-      AppMessage::LoadSplits(path) => {
-        let p = Path::new(&path);
-        let source = fs::read(p)?;
-        let parsed_run = parser::parse_and_fix(&source, Some(p))?;
-        let game_name = parsed_run.run.game_name().to_string();
-        let category_name = parsed_run.run.category_name().to_string();
-        let timer = Timer::new(parsed_run.run)?;
-        self.repository.update_from_splits(timer.run())?;
-        self.timer = timer.into_shared();
-        self.autosplitter = Runtime::new(self.timer.clone());
-        info!("loaded splits: {} - {}", game_name, category_name);
-        Ok(Task::none())
-      }
-      AppMessage::SaveSplitsOpenPicker => {
-        let future = Task::future(
-          rfd::AsyncFileDialog::new()
-            .add_filter("LiveSplit Splits", &["lss"])
-            .save_file(),
-        )
-        .then(|handle| match handle {
-          Some(handle) => {
-            let file_path = handle.path().to_string_lossy().to_string();
-            Task::done(AppMessage::SaveSplits(file_path))
-          }
-          None => Task::none(),
-        });
-        Ok(future)
-      }
-      AppMessage::SaveSplits(path) => {
-        self.save_splits(path)?;
-        info!("saved splits");
-        Ok(Task::none())
-      }
-      AppMessage::LoadLayoutOpenPicker => {
-        let future = Task::future(
-          rfd::AsyncFileDialog::new()
-            .add_filter("YAST Layout", &["yasl"])
-            .pick_file(),
-        )
-        .then(|handle| match handle {
-          Some(handle) => {
-            let file_path = handle.path().to_string_lossy().to_string();
-            Task::done(AppMessage::LoadLayout(file_path))
-          }
-          None => Task::none(),
-        });
-        Ok(future)
-      }
-      AppMessage::LoadLayout(path) => {
-        let toml_string = read_to_string(path)?;
-        let new_layout = Layout::load(
-          &mut self.repository,
-          &self.components,
-          &self.lua_context.lua,
-          toml_string,
-        )?;
-        let width = new_layout.width;
-        let height = new_layout.height;
-        self.layout = new_layout;
-        for (id, _) in self.hotkeys.drain() {
-          self.hotkey_manager.unregister(id)?;
-        }
-        self.hotkeys_on = false;
-        info!(
-          "loaded layout: {} by {}",
-          self.layout.name, self.layout.author
-        );
-        Ok(Task::done(AppMessage::ResizeTimer(width, height)))
-      }
-      AppMessage::SaveLayoutOpenPicker => {
-        let future = Task::future(
-          rfd::AsyncFileDialog::new()
-            .add_filter("YAST Layout", &["yasl"])
-            .save_file(),
-        )
-        .then(|handle| match handle {
-          Some(handle) => {
-            let file_path = handle.path().to_string_lossy().to_string();
-            Task::done(AppMessage::SaveLayout(file_path))
-          }
-          None => Task::none(),
-        });
-        Ok(future)
-      }
-      AppMessage::SaveLayout(path) => {
-        self.layout.save(&path)?;
-        info!("saved layout");
-        Ok(Task::none())
-      }
-      AppMessage::LoadAutosplitterOpenPicker => {
-        let future = Task::future(
-          rfd::AsyncFileDialog::new()
-            .add_filter("LiveSplit Autosplitter", &["wasm"])
-            .pick_file(),
-        )
-        .then(|handle| match handle {
-          Some(handle) => {
-            let file_path = handle.path().to_string_lossy().to_string();
-            Task::done(AppMessage::LoadAutosplitter(file_path))
-          }
-          None => Task::none(),
-        });
-        Ok(future)
-      }
-      AppMessage::LoadAutosplitter(path) => {
-        let p = Path::new(&path).to_path_buf();
-        self.autosplitter.load_script_blocking(p)?;
-        info!("loaded autosplitter");
-        Ok(Task::none())
-      }
-    }
   }
 
   fn view(&self) -> Element<'_, AppMessage> {
@@ -483,70 +140,31 @@ impl App {
       space().width(Length::Fill).height(Length::Fill).into()
     };
 
-    let styler = |t: &Theme, _: button::Status| button::Style {
-      background: Some(Background::Color(t.palette().primary)),
-      text_color: t.palette().text,
-      ..Default::default()
-    };
-
-    let toggle_hotkeys_state = match self.hotkeys_on {
-      true => "off",
-      false => "on",
-    };
-    let toggle_hotkeys_text = format!("toggle hotkeys {}", toggle_hotkeys_state);
-
-    let context = ContextMenu::new(inner, move || {
-      column(vec![
-        button("load splits")
-          .width(Length::Fill)
-          .on_press(AppMessage::LoadSplitsOpenPicker)
-          .style(styler)
-          .into(),
-        button("save splits")
-          .width(Length::Fill)
-          .on_press(AppMessage::SaveSplitsOpenPicker)
-          .style(styler)
-          .into(),
-        space().width(Length::Fixed(10.0)).into(),
-        button("load autosplitter")
-          .width(Length::Fill)
-          .on_press(AppMessage::LoadAutosplitterOpenPicker)
-          .style(styler)
-          .into(),
-        space().width(Length::Fixed(10.0)).into(),
-        button("load layout")
-          .width(Length::Fill)
-          .on_press(AppMessage::LoadLayoutOpenPicker)
-          .style(styler)
-          .into(),
-        button("save layout")
-          .width(Length::Fill)
-          .on_press(AppMessage::SaveLayoutOpenPicker)
-          .style(styler)
-          .into(),
-        space().width(Length::Fixed(10.0)).into(),
-        button(text(toggle_hotkeys_text.clone()))
-          .width(Length::Fill)
-          .on_press(AppMessage::ToggleHotkeys)
-          .style(styler)
-          .into(),
-      ])
-      .width(Length::Fixed(200.))
-      .spacing(2.0)
-      .into()
-    })
-    .into();
-
-    let stacked = stack(vec![
-      container(space().width(Length::Fill).height(Length::Fill))
-        .style(|_| container::Style {
+    let mut stack_vec = vec![
+      mouse_area(
+        container(space().width(Length::Fill).height(Length::Fill)).style(|_| container::Style {
           background: Some(Background::Color(Color::BLACK)),
           ..Default::default()
-        })
-        .into(),
-      context,
-    ])
-    .into();
+        }),
+      )
+      .on_right_press(AppMessage::MenuMessage(MenuMessage::ToggleMenu))
+      .into(),
+      inner,
+    ];
+
+    if self.menu.opened {
+      stack_vec.push(
+        container(space().width(Length::Fill).height(Length::Fill))
+          .style(|_| container::Style {
+            background: Some(Background::Color(Color::from_rgba(0.5, 0.5, 0.5, 0.5))),
+            ..Default::default()
+          })
+          .into(),
+      );
+      stack_vec.push(Menu::view(&self));
+    }
+
+    let stacked = stack(stack_vec).into();
 
     stacked
   }

@@ -9,11 +9,15 @@
 
 ## YAST - `yast`
 
-### Unreleased
+### **0.2.0** - Unreleased
+
+#### Added
+
+- New menu
 
 #### Changed
 
-- `yast-core` bump
+- `yast-core` bump to 0.2.0
 - Hotkey refactor to ease Windows development
 
 ### **0.1.1** - 2026-02-27
@@ -33,11 +37,11 @@
 
 ## YASLE - `yasle`
 
-### Unreleased
+### **0.2.0** - Unreleased
 
 #### Changed
 
-- `yast-core` bump
+- `yast-core` bump to 0.2.0
 
 ### **0.1.1** - 2026-02-27
 
@@ -55,7 +59,7 @@
 
 ## `yast-core`
 
-### Unreleased
+### **0.2.0** - Unreleased
 
 #### Added
 
@@ -67,9 +71,9 @@
 
 - All default components rewritten
 
-#### Depreciated
+#### Removed
 
-- In the `time` library, `cta`, `current_timing_accessor` and `accessor_*` operations are depreciated.
+- In the `time` library, `cta`, `current_timing_accessor` and `accessor_*` operations are no longer available.
   - Please check the library, as most functions regarding accessing timer values are now handled by the library itself.
 
 ### **0.1.0** - 2026-02-16
