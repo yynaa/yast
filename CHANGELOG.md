@@ -15,6 +15,7 @@
 
 - New menu
   - Comparison & Timing Method selectors
+- Icon
 
 #### Changed
 
@@ -40,9 +41,14 @@
 
 ### **0.2.0** - Unreleased
 
+#### Added
+
+- Icon
+
 #### Changed
 
 - `yast-core` bump to 0.2.0
+- Button colors
 
 ### **0.1.1** - 2026-02-27
 
@@ -98,5 +104,6 @@
 
 | `yast` | `yasle` | `yast-core` | `yast-windows` |
 |:-------|:--------|:------------|:---------------|
+| 0.2.0  | 0.2.0   | 0.2.0       | 0.1.0          |
 | 0.1.1  | 0.1.1   | 0.1.0       | 0.1.0          |
 | 0.1.0  | 0.1.0   | 0.1.0       | 0.1.0          |

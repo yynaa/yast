@@ -1,3 +1,4 @@
+use ::image::ImageFormat;
 use anyhow::Result;
 use handy_keys::{Hotkey, Key, KeyboardListener, Modifiers};
 use include_dir::Dir;
@@ -28,7 +29,7 @@ use iced::{
   alignment::Vertical,
   time::every,
   widget::{button, column, combo_box, container, image, row, space, stack, text, text_input},
-  window,
+  window::{self, icon},
 };
 use rfd::{MessageButtons, MessageDialog, MessageDialogResult};
 use std::{
@@ -799,6 +800,16 @@ pub fn run_app() -> iced::Result {
     .exit_on_close_request(false)
     .settings(Settings {
       id: Some(String::from("yasle")),
+      ..Default::default()
+    })
+    .window(window::Settings {
+      icon: Some(
+        icon::from_file_data(
+          include_bytes!("../../../res/icon-yasle.png"),
+          Some(ImageFormat::Png),
+        )
+        .unwrap(),
+      ),
       ..Default::default()
     })
     .run()

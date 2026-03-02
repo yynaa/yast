@@ -6390,6 +6390,7 @@ dependencies = [
  "handy-keys",
  "humantime",
  "iced",
+ "image 0.25.9",
  "include_dir",
  "livesplit-core",
  "log",

@@ -218,7 +218,11 @@ pub fn run_app() -> iced::Result {
     .window(window::Settings {
       exit_on_close_request: false,
       icon: Some(
-        icon::from_file_data(include_bytes!("../res/icon.png"), Some(ImageFormat::Png)).unwrap(),
+        icon::from_file_data(
+          include_bytes!("../res/icon-yast.png"),
+          Some(ImageFormat::Png),
+        )
+        .unwrap(),
       ),
       ..Default::default()
     })
