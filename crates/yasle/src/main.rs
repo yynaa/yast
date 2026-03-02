@@ -598,6 +598,7 @@ impl App {
         button("Load Layout")
           .width(Length::Fill)
           .on_press(AppMessage::LoadLayoutOpenPicker)
+          .style(button::secondary)
           .into(),
         button("Save Layout")
           .width(Length::Fill)
@@ -620,6 +621,7 @@ impl App {
         button("Layout Preview")
           .width(Length::Fill)
           .on_press(AppMessage::TogglePreview)
+          .style(button::success)
           .into(),
         button("Hotkey Editor")
           .width(Length::Fill)

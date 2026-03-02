@@ -42,6 +42,7 @@ pub fn component_editor<'a>(
     layout_part_attributes_row_vec.push(
       button("Delete Component")
         .on_press(AppMessage::DeleteComponent(full_path.clone()))
+        .style(button::danger)
         .into(),
     );
 

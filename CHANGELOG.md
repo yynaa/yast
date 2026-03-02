@@ -14,6 +14,7 @@
 #### Added
 
 - New menu
+  - Comparison & Timing Method selectors
 
 #### Changed
 
