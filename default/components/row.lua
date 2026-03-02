@@ -1,7 +1,7 @@
 local background = require("background")
 
 return {
-	name = "Column",
+	name = "Row",
 	author = "yyna",
 	settings = function()
 		return settings_factory():plugin(background.plugin)
@@ -12,6 +12,6 @@ return {
 			table.insert(c, children.get(i))
 		end
 
-		return background.apply(widgets.column(c):width("fill"):height("fill"):into())
+		return background.apply(widgets.row(c):width("fill"):height("fill"):into())
 	end,
 }

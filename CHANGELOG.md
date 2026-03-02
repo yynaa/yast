@@ -42,6 +42,22 @@
 
 ## `yast-core`
 
+### Unreleased
+
+#### Added
+
+- `time` library modified
+  - See the library's documentation for more information
+
+#### Changed
+
+- All default components rewritten
+
+#### Depreciated
+
+- In the `time` library, `cta`, `current_timing_accessor` and `accessor_*` operations are depreciated.
+  - Please check the library, as most functions regarding accessing timer values are now handled by the library itself.
+
 ### **0.1.0** - 2026-02-16
 
 #### Added
