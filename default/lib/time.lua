@@ -146,6 +146,9 @@ local function live_delta(segment, comparison, timing_method)
 	if segment == nil then
 		segment = snapshot.current_split
 	end
+	if segment == nil then
+		return nil
+	end
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
@@ -176,6 +179,9 @@ end
 local function live_segment_delta(segment, comparison, timing_method)
 	if segment == nil then
 		segment = snapshot.current_split
+	end
+	if segment == nil then
+		return nil
 	end
 	if not comparison then
 		comparison = snapshot.current_comparison
@@ -212,6 +218,9 @@ local function live_split_time(segment, comparison, timing_method)
 	if segment == nil then
 		segment = snapshot.current_split
 	end
+	if segment == nil then
+		return nil
+	end
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
@@ -235,6 +244,9 @@ end
 local function live_segment_time(segment, comparison, timing_method)
 	if segment == nil then
 		segment = snapshot.current_split
+	end
+	if segment == nil then
+		return nil
 	end
 	if not comparison then
 		comparison = snapshot.current_comparison
@@ -278,6 +290,9 @@ local function possible_time_save(segment, comparison, timing_method)
 	if segment == nil then
 		segment = snapshot.current_split
 	end
+	if segment == nil then
+		return nil
+	end
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
@@ -303,6 +318,9 @@ local function total_possible_time_save(comparison, timing_method)
 	else
 		local best_time = live_split_time(#run.segments, "Best Segments", timing_method)
 		local comp_time = live_split_time(#run.segments, comparison, timing_method)
+		if best_time == nil or comp_time == nil then
+			return nil
+		end
 		return comp_time - best_time
 	end
 end

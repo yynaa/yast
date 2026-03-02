@@ -28,8 +28,8 @@ return {
 		local color = "Color " .. snapshot.current_phase
 		local ld = time.live_delta()
 		if snapshot.current_phase == "Running" then
-			if ld and time.cta(ld) ~= nil then
-				if time.cta(ld) < 0 then
+			if ld ~= nil then
+				if ld < 0 then
 					color = color .. " Ahead"
 				else
 					color = color .. " Behind"
