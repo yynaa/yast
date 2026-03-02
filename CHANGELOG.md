@@ -9,6 +9,13 @@
 
 ## YAST - `yast`
 
+### Unreleased
+
+#### Changed
+
+- `yast-core` bump
+- Hotkey refactor to ease Windows development
+
 ### **0.1.1** - 2026-02-27
 
 #### Added
@@ -25,6 +32,12 @@
 - Global Hotkeys
 
 ## YASLE - `yasle`
+
+### Unreleased
+
+#### Changed
+
+- `yast-core` bump
 
 ### **0.1.1** - 2026-02-27
 

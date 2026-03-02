@@ -147,6 +147,52 @@ impl App {
     })
   }
 
+  fn handle_hotkey(&mut self, action: HotkeyAction) -> Result<()> {
+    let mut timer = self
+      .timer
+      .write()
+      .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
+
+    match action {
+      HotkeyAction::StartOrSplitTimer => {
+        timer.split_or_start();
+      }
+      HotkeyAction::StartTimer => {
+        timer.start();
+      }
+      HotkeyAction::SplitTimer => {
+        timer.split();
+      }
+      HotkeyAction::ResetTimerWithoutSaving => {
+        timer.reset(false);
+      }
+      HotkeyAction::ResetTimer => {
+        self.splits_edited = true;
+        timer.reset(true);
+      }
+      HotkeyAction::SkipSplit => {
+        timer.skip_split();
+      }
+      HotkeyAction::UndoSplit => {
+        timer.undo_split();
+      }
+      HotkeyAction::PauseTimer => {
+        timer.toggle_pause();
+      }
+      HotkeyAction::ToggleTimingMethod => {
+        timer.toggle_timing_method();
+      }
+      HotkeyAction::NextComparison => {
+        timer.switch_to_next_comparison();
+      }
+      HotkeyAction::PreviousComparison => {
+        timer.switch_to_previous_comparison();
+      }
+    }
+
+    Ok(())
+  }
+
   fn update(&mut self, message: AppMessage) -> Result<Task<AppMessage>> {
     match message {
       AppMessage::Init(id) => {
@@ -156,52 +202,15 @@ impl App {
       AppMessage::Update => {
         if let Some(event) = self.hotkey_manager.try_recv() {
           if let HotkeyState::Pressed = event.state {
-            let mut timer = self
-              .timer
-              .write()
-              .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
-            match self
+            let hotkey = self
               .hotkeys
               .get(&event.id)
               .ok_or(anyhow::Error::msg(format!(
                 "couldn't get hotkey {:?}",
                 &event.id
-              )))? {
-              HotkeyAction::StartOrSplitTimer => {
-                timer.split_or_start();
-              }
-              HotkeyAction::StartTimer => {
-                timer.start();
-              }
-              HotkeyAction::SplitTimer => {
-                timer.split();
-              }
-              HotkeyAction::ResetTimerWithoutSaving => {
-                timer.reset(false);
-              }
-              HotkeyAction::ResetTimer => {
-                self.splits_edited = true;
-                timer.reset(true);
-              }
-              HotkeyAction::SkipSplit => {
-                timer.skip_split();
-              }
-              HotkeyAction::UndoSplit => {
-                timer.undo_split();
-              }
-              HotkeyAction::PauseTimer => {
-                timer.toggle_pause();
-              }
-              HotkeyAction::ToggleTimingMethod => {
-                timer.toggle_timing_method();
-              }
-              HotkeyAction::NextComparison => {
-                timer.switch_to_next_comparison();
-              }
-              HotkeyAction::PreviousComparison => {
-                timer.switch_to_previous_comparison();
-              }
-            }
+              )))?
+              .clone();
+            self.handle_hotkey(hotkey)?;
           }
         }
 
@@ -289,45 +298,8 @@ impl App {
           if let Some(translated_hotkey) = yast_windows::translate_event_to_hotkey(event)? {
             for (action, hotkey) in &self.layout.hotkeys {
               if *hotkey == translated_hotkey {
-                let mut timer = self
-                  .timer
-                  .write()
-                  .map_err(|_| anyhow::Error::msg("couldn't access timer"))?;
-                match action {
-                  HotkeyAction::StartOrSplitTimer => {
-                    timer.split_or_start();
-                  }
-                  HotkeyAction::StartTimer => {
-                    timer.start();
-                  }
-                  HotkeyAction::SplitTimer => {
-                    timer.split();
-                  }
-                  HotkeyAction::ResetTimerWithoutSaving => {
-                    timer.reset(false);
-                  }
-                  HotkeyAction::ResetTimer => {
-                    timer.reset(true);
-                  }
-                  HotkeyAction::SkipSplit => {
-                    timer.skip_split();
-                  }
-                  HotkeyAction::UndoSplit => {
-                    timer.undo_split();
-                  }
-                  HotkeyAction::PauseTimer => {
-                    timer.toggle_pause();
-                  }
-                  HotkeyAction::ToggleTimingMethod => {
-                    timer.toggle_timing_method();
-                  }
-                  HotkeyAction::NextComparison => {
-                    timer.switch_to_next_comparison();
-                  }
-                  HotkeyAction::PreviousComparison => {
-                    timer.switch_to_previous_comparison();
-                  }
-                }
+                self.handle_hotkey(action.clone())?;
+                break;
               }
             }
           }
