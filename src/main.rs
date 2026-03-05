@@ -219,7 +219,7 @@ pub fn run_app() -> iced::Result {
       exit_on_close_request: false,
       icon: Some(
         icon::from_file_data(
-          include_bytes!("../res/icon-yast.png"),
+          include_bytes!("../res/sapho_icon.png"),
           Some(ImageFormat::Png),
         )
         .unwrap(),

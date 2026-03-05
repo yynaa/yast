@@ -8,7 +8,7 @@ use anyhow::Result;
 use iced::{
   Background, Color, Element, Length, Task,
   alignment::Horizontal,
-  widget::{button, column, combo_box, container, opaque, row, space, stack, text},
+  widget::{button, column, combo_box, container, image, opaque, row, space, stack, text},
 };
 use livesplit_core::{Timer, TimingMethod, auto_splitting::Runtime, run::parser};
 use yast_core::layout::Layout;
@@ -17,6 +17,7 @@ use crate::{App, AppMessage};
 
 pub struct Menu {
   pub opened: bool,
+  sapho_handle: image::Handle,
   comparison_state: combo_box::State<String>,
   timing_method_state: combo_box::State<TimingMethodOption>,
 }
@@ -78,6 +79,7 @@ impl Menu {
   pub fn new(comparisons: Vec<String>) -> Self {
     Self {
       opened: false,
+      sapho_handle: image::Handle::from_bytes(include_bytes!("../res/sapho_logo.png").to_vec()),
       comparison_state: combo_box::State::new(comparisons),
       timing_method_state: combo_box::State::new(vec![
         TimingMethodOption::RealTime,
@@ -336,6 +338,21 @@ impl Menu {
         .into(),
       );
     }
+
+    children.push(space().width(Length::Fill).height(Length::Fill).into());
+    children.push(
+      image(app.menu.sapho_handle.clone())
+        .height(Length::Fixed(200.))
+        .into(),
+    );
+    children.push(
+      text("Sapho, YASX's mascot, was drawn by @sacha_bnk (Instagram). Check them out!")
+        .style(|_| text::Style {
+          color: Some(Color::from_rgba(1.0, 1.0, 1.0, 0.6)),
+        })
+        .size(10.)
+        .into(),
+    );
 
     let content = stack(vec![
       container(space().width(Length::Fill).height(Length::Fill))

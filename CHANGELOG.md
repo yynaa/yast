@@ -16,6 +16,7 @@
 - New menu
   - Comparison & Timing Method selectors
 - Icon
+  - Sapho, YAST's mascot, was drawn by [@sacha_bnk](https://www.instagram.com/sacha_bnk/) (Instagram)
 
 #### Changed
 
@@ -44,6 +45,7 @@
 #### Added
 
 - Icon
+  - Sapho, YAST's mascot, was drawn by [@sacha_bnk](https://www.instagram.com/sacha_bnk/) (Instagram)
 
 #### Changed
 

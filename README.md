@@ -1,9 +1,21 @@
-<div align="center">
-    <h1>YAST: Yet Another Speedrunning Timer</h1>
-    <p><b>YAST</b> <i>(Yet Another Speedrunning Timer, "fast" and "yyna" combined)</i> is a native multi-platform timer based on livesplit-core.</p>
-    <img src="https://raw.githubusercontent.com/wiki/yynaa/yast/yast-0.1.0.png" height="500">
-    <p><b>YASLE</b> <i>(Yet Another Speedrunning Layout Editor)</i> is YAST's layout editor.</p>
-    <p><i><b>YAST</b> and <b>YASLE</b> form the <b>YASX ecosystem</b>, your multi-platform speedrunning timer!</i></p>
+# YAST: Yet Another Speedrunning Timer
+
+<a href="https://github.com/yynaa/yast"><img src="res/sapho_logo.png" alt="Sapho, YAST's mascot" align="right" width="300px" title="Sapho, YAST's mascot"></a>
+<div align="justify">
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <p><b>YAST</b> <i>(Yet Another Speedrunning Timer, "fast" and "yyna" combined)</i> is a native multi-platform timer based on livesplit-core.</p>
+  <p><b>YASLE</b> <i>(Yet Another Speedrunning Layout Editor)</i> is YAST's layout editor.</p>
+  <p><i><b>YAST</b> and <b>YASLE</b> form the <b>YASX ecosystem</b>, your multi-platform speedrunning timer!</i></p>
+  <blockquote>Sapho, YAST's mascot, was drawn by <a href="https://www.instagram.com/sacha_bnk/">@sacha_bnk</a> (Instagram). Check them out!</blockquote>
+  <br/>
+</div>
+
+<div class="center">
+  <img height="400" align="center" src="https://raw.githubusercontent.com/wiki/yynaa/yast/yast-0.2.0.png">
+  <img height="400" align="center" src="https://raw.githubusercontent.com/wiki/yynaa/yast/yasle-0.2.0.png">
 </div>
 
 > [!WARNING]
@@ -43,7 +55,7 @@
 ## Installing
 
 > [!IMPORTANT]
-> I'm looking for package maintainers to put YAST on their favorite PMs!  
+> I'm looking for package maintainers to put the YASX ecosystem on their favorite PMs!  
 > If you wish to inform me of such, please contact me through [email](mailto://me@yyna.xyz)
 > or [other means](https://yyna.xyz/c)!  
 > Thank you so much!
@@ -67,14 +79,14 @@ You may look into [building it from source yourself](#building-from-source).
 
 #### Linux: Wayland
 
-You need to run YAST as a user in the `input` group for global hotkeys to work.  
-Running YAST as root is not recommended.
+You need to run YAST and YASLE as a user in the `input` group for global hotkeys to work.  
+Running as root is not recommended.
 
 #### MacOS
 
-You need to allow keyboard accessibility to YAST, through **System Preferences > Security & Privacy > Privacy >
+You need to allow keyboard accessibility to YAST and YASLE, through **System Preferences > Security & Privacy > Privacy >
 Accessibility**.  
-If you are running YAST in a terminal, allow your terminal instead.
+If you are running them in a terminal, allow your terminal instead.
 
 ## Usage
 

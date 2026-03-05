@@ -805,7 +805,7 @@ pub fn run_app() -> iced::Result {
     .window(window::Settings {
       icon: Some(
         icon::from_file_data(
-          include_bytes!("../../../res/icon-yasle.png"),
+          include_bytes!("../../../res/sapho_icon.png"),
           Some(ImageFormat::Png),
         )
         .unwrap(),
