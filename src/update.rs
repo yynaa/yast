@@ -4,6 +4,9 @@ use iced::{Size, Task, window};
 use rfd::{MessageButtons, MessageDialog, MessageDialogResult};
 use yast_core::layout::HotkeyAction;
 
+#[cfg(target_os = "windows")]
+use iced::keyboard;
+
 use crate::{App, AppMessage, menu::Menu};
 
 impl App {
