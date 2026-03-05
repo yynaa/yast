@@ -5,7 +5,6 @@
   <br/>
   <br/>
   <br/>
-  <br/>
   <p><b>YAST</b> <i>(Yet Another Speedrunning Timer, "fast" and "yyna" combined)</i> is a native multi-platform timer based on livesplit-core.</p>
   <p><b>YASLE</b> <i>(Yet Another Speedrunning Layout Editor)</i> is YAST's layout editor.</p>
   <p><i><b>YAST</b> and <b>YASLE</b> form the <b>YASX ecosystem</b>, your multi-platform speedrunning timer!</i></p>
