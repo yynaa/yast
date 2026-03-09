@@ -163,9 +163,10 @@ impl Component {
             )))
           }
         } else {
-          Err(LuaError::external(anyhow::Error::msg(
-            "can't find component in layout settings",
-          )))
+          Err(LuaError::external(anyhow::Error::msg(format!(
+            "can't find component {:?} in layout settings",
+            pc.clone()
+          ))))
         }
       })?;
       env.set("setting", setting)?;

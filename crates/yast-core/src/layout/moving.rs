@@ -155,4 +155,70 @@ impl Layout {
       ))
     }
   }
+
+  fn settings_delete(&mut self, mut path: Vec<usize>) -> Result<Vec<usize>> {
+    let last = path
+      .pop()
+      .ok_or(anyhow::Error::msg("cannot move root component settings"))?;
+    let parent_component_length = self
+      .content
+      .as_ref()
+      .unwrap()
+      .get_from_path(path.clone())?
+      .children
+      .len();
+
+    let old = self.settings.clone();
+    for i in last + 1..parent_component_length {
+      let mut from = path.clone();
+      let mut to = path.clone();
+      from.push(i);
+      to.push(i - 1);
+      self.settings_move_from(&old, from, to)?;
+    }
+
+    let mut to_remove = path.clone();
+    to_remove.push(parent_component_length - 1);
+    self.settings.remove(&to_remove).ok_or(anyhow::Error::msg(
+      "couldn't remove last setting when deleting a component",
+    ))?;
+
+    path.push(last.saturating_sub(1));
+    Ok(path)
+  }
+
+  fn tree_delete(&mut self, mut path: Vec<usize>) -> Result<Vec<usize>> {
+    let last = path
+      .pop()
+      .ok_or(anyhow::Error::msg("cannot move root component settings"))?;
+    let parent = self
+      .content
+      .as_mut()
+      .unwrap()
+      .get_mut_from_path(path.clone())?;
+
+    parent.children.remove(last);
+
+    path.push(last.saturating_sub(1));
+    Ok(path)
+  }
+
+  pub fn component_delete(&mut self, path: Vec<usize>) -> Result<Vec<usize>> {
+    let s = self.settings_delete(path.clone()).map_err(|err| {
+      anyhow::Error::msg(format!(
+        "couldn't delete settings (corrupted data!): {}",
+        err
+      ))
+    })?;
+    let t = self.tree_delete(path.clone()).map_err(|err| {
+      anyhow::Error::msg(format!("couldn't delete tree (corrupted data!): {}", err))
+    })?;
+    if s == t {
+      Ok(s)
+    } else {
+      Err(anyhow::Error::msg(
+        "not both settings and tree were deleted (corrupted data!)",
+      ))
+    }
+  }
 }

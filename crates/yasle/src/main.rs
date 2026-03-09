@@ -416,24 +416,10 @@ impl App {
           Ok(Task::done(AppMessage::OpenComponent(vec![])))
         }
       }
-      AppMessage::DeleteComponent(mut path) => {
-        if let Some(lcontent) = &mut self.layout.content {
-          if path.len() > 0 {
-            self.layout.settings.remove(&path);
-            let last_path_element = path.pop().unwrap();
-            let parent = get_mut_component_at_path(lcontent, path.clone())?;
-            parent.children.remove(last_path_element);
-            self.opened_component.pop();
-            self.layout_edited = true;
-            Ok(Task::none())
-          } else {
-            self.layout.content = None;
-            self.layout_edited = true;
-            Ok(Task::none())
-          }
-        } else {
-          unreachable!()
-        }
+      AppMessage::DeleteComponent(path) => {
+        let new_pos = self.layout.component_delete(path)?;
+        self.layout_edited = true;
+        Ok(Task::done(AppMessage::OpenComponent(new_pos)))
       }
       AppMessage::MoveComponentUp(path) => {
         let new_pos = self.layout.component_move_up(path)?;

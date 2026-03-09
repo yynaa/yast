@@ -52,6 +52,10 @@
 
 - Developer documentation
 
+#### Fixed
+
+- Removing components
+
 ### **0.2.0** - 2026-03-05
 
 #### Added
@@ -85,6 +89,7 @@
 #### Added
 
 - Developer documentation
+- Logic for removing a component in layout
 
 ### **0.2.0** - 2026-03-05
 
