@@ -1,8 +1,12 @@
+//! `yast-windows` is YASX's windows lib.
+//! it handles mostly input. thanks windows!
+
 use anyhow::Result;
 
 use handy_keys::{Hotkey, Key as HandyKey, Modifiers as HandyModifiers};
 use iced::keyboard::{Event, Key as IcedKey, Modifiers as IcedModifiers, key::Named};
 
+/// translate an iced key to an handy key
 fn translate_key_to_key(key: IcedKey) -> Option<HandyKey> {
   match key {
     IcedKey::Unidentified => None,
@@ -78,6 +82,7 @@ fn translate_key_to_key(key: IcedKey) -> Option<HandyKey> {
   }
 }
 
+/// translate an iced event to a hotkey
 pub fn translate_event_to_hotkey(event: Event) -> Result<Option<Hotkey>> {
   match event {
     Event::KeyPressed {

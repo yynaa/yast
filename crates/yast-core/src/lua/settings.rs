@@ -1,3 +1,5 @@
+//! settings manager and factories
+
 use std::collections::HashMap;
 
 use anyhow::Result;
@@ -23,6 +25,7 @@ pub enum SettingsFactoryValue {
   String(String),
   Options(Vec<String>, String),
   Number(f64),
+  ///min, max, step, default
   NumberRange(f64, f64, f64, f64),
   Color([f32; 4]),
   Image,
@@ -183,6 +186,7 @@ impl LuaUserData for SettingsFactory {
 }
 
 impl SettingsFactory {
+  /// creates a new hashmap for all settings (called when creating a component)
   pub fn initialize_defaults(&self) -> HashMap<String, SettingsValue> {
     let mut r = HashMap::new();
     for entry in &self.0 {
@@ -194,6 +198,7 @@ impl SettingsFactory {
   }
 }
 
+/// lua injector for settings
 pub fn component_settings(lua: &Lua) -> Result<()> {
   let component_settings_constructor =
     lua.create_function(|_, ()| Ok(SettingsFactory::default()))?;

@@ -1,3 +1,5 @@
+//! repository for storing image handles and other UI related handles
+
 use std::collections::HashMap;
 
 use anyhow::Result;

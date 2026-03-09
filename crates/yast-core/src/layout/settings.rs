@@ -1,3 +1,5 @@
+//! layout settings
+
 use anyhow::Result;
 use mlua::prelude::*;
 use std::collections::HashMap;
@@ -8,6 +10,7 @@ use crate::{lua::widgets::image::ImageHandleLua, repository::Repository};
 
 pub type LayoutSettings = HashMap<Vec<usize>, HashMap<String, SettingsValue>>;
 
+/// serialized setting value
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SettingsValue {
   Boolean(bool),
@@ -20,6 +23,7 @@ pub enum SettingsValue {
 }
 
 impl SettingsValue {
+  /// transforms a setting into a LuaValue for components to use
   pub fn inner(
     &self,
     lua: &Lua,

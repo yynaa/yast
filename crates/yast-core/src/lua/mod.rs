@@ -1,3 +1,5 @@
+//! all lua related stuff: widgets, injectors, settings...
+
 use anyhow::Result;
 use mlua::prelude::*;
 
@@ -5,6 +7,7 @@ pub mod inject;
 pub mod settings;
 pub mod widgets;
 
+/// context used by all apps
 pub struct LuaContext {
   pub lua: Lua,
 }

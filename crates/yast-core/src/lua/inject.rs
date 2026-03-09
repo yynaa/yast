@@ -1,9 +1,12 @@
+//! general value injection
+
 use anyhow::Result;
 use livesplit_core::{Timer, analysis};
 use mlua::prelude::*;
 
 use crate::{lua::widgets::image::ImageHandleLua, repository::Repository};
 
+/// general value injector
 pub fn inject_values_in_lua(lua: &Lua, timer: &Timer, repository: &Repository) -> Result<()> {
   let snapshot = timer.snapshot();
 

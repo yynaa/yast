@@ -1,6 +1,9 @@
 [package]
 name = "yasle"
 version = "0.2.0"
+description = "Yet Another Speedrunning Layout Editor"
+license = "MIT"
+authors = ["yyna <me@yyna.xyz>"]
 edition = "2024"
 
 [dependencies]

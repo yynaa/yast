@@ -9,6 +9,12 @@
 
 ## YAST - `yast`
 
+### Unreleased
+
+#### Added
+
+- Developer documentation
+
 ### **0.2.0** - 2026-03-05
 
 #### Added
@@ -40,6 +46,12 @@
 
 ## YASLE - `yasle`
 
+### Unreleased
+
+#### Added
+
+- Developer documentation
+
 ### **0.2.0** - 2026-03-05
 
 #### Added
@@ -68,6 +80,12 @@
 
 ## `yast-core`
 
+### Unreleased
+
+#### Added
+
+- Developer documentation
+
 ### **0.2.0** - 2026-03-05
 
 #### Added
@@ -95,6 +113,12 @@
 - App repository
 
 ## `yast-windows`
+
+### Unreleased
+
+#### Added
+
+- Developer documentation
 
 ### **0.1.0** - 2026-02-16
 

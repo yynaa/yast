@@ -1,6 +1,9 @@
 [package]
 name = "yast-windows"
 version = "0.1.0"
+description = "Windows lib for YASX"
+license = "MIT"
+authors = ["yyna <me@yyna.xyz>"]
 edition = "2024"
 
 [dependencies]

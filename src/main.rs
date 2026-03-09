@@ -247,6 +247,7 @@ fn is_ready() -> Result<bool> {
   Ok(true)
 }
 
+/// directory for default components and libs
 static DEFAULT_DIR: Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/default");
 
 fn main() -> Result<()> {

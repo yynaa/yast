@@ -28,6 +28,9 @@ impl App {
     })
   }
 
+  /// common function for handling hotkeys
+  ///
+  /// used by windows-only calls and the regular handykeys callback
   pub fn handle_hotkey(&mut self, action: HotkeyAction) -> Result<()> {
     let mut timer = self
       .timer

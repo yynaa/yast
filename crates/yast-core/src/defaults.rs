@@ -4,6 +4,9 @@ use anyhow::Result;
 use include_dir::Dir;
 use log::info;
 
+/// function used to copy default components in the data dir
+///
+/// ignores if the yast dir exists
 pub fn copy_default_components(default_dir: &Dir<'static>) -> Result<()> {
   let data_dir = dirs::data_dir().expect("couldn't get data directory");
   let mut yast_dir = data_dir.clone();

@@ -2,6 +2,9 @@
 name = "yast"
 edition = "2024"
 version = "0.2.0"
+description = "Yet Another Speedrunning Timer"
+license = "MIT"
+authors = ["yyna <me@yyna.xyz>"]
 
 [workspace]
 members = ["crates/yast-core", "crates/yasle", "crates/yast-windows"]

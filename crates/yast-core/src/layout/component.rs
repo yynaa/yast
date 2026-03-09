@@ -1,3 +1,5 @@
+//! component management
+
 use std::{
   collections::HashMap,
   fs::{read_dir, read_to_string},
@@ -18,14 +20,17 @@ use crate::{
   repository::Repository,
 };
 
+/// serializable component
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Component {
   pub name: String,
   pub author: String,
   pub children: Vec<Component>,
 
+  /// this is not serialized. it is initialized by the layout loader
   #[serde(skip)]
   widget: Option<LuaFunction>,
+  /// this is not serialized. this is the settings factory
   #[serde(skip)]
   pub parameters: SettingsFactory,
 }

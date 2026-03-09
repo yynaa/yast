@@ -1,3 +1,5 @@
+//! all lua iced widgets available
+
 use anyhow::Result;
 use iced::Element;
 use mlua::prelude::*;
@@ -26,6 +28,7 @@ pub mod space;
 pub mod stack;
 pub mod text;
 
+/// global widget structure
 #[derive(Clone)]
 pub enum LuaWidget {
   InternalChild(usize),
@@ -57,6 +60,7 @@ impl FromLua for LuaWidget {
 impl LuaUserData for LuaWidget {}
 
 impl LuaWidget {
+  /// internal builder wrapper for all widgets
   pub fn build<'a, M: 'a>(
     self,
     tree: &Component,
@@ -88,6 +92,7 @@ impl LuaWidget {
   }
 }
 
+/// global injector for widgets
 pub fn widgets(lua: &Lua) -> Result<()> {
   init_internals(lua)?;
 

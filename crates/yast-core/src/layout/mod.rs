@@ -1,3 +1,5 @@
+//! layout management
+
 use anyhow::Result;
 use handy_keys::Hotkey;
 use iced::advanced::image;
@@ -18,6 +20,7 @@ pub mod component;
 pub mod moving;
 pub mod settings;
 
+/// main serializable layout structure
 #[derive(Serialize, Deserialize)]
 pub struct Layout {
   pub name: String,
@@ -82,6 +85,7 @@ impl Default for Layout {
   }
 }
 
+/// all possible actions from hotkeys
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Debug, Clone, EnumIter)]
 pub enum HotkeyAction {
   StartOrSplitTimer,

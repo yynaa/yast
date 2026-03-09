@@ -1,8 +1,11 @@
+//! injector for internal functions (children, logging)
+
 use log::{debug, error, info, trace, warn};
 use mlua::prelude::*;
 
 use crate::lua::widgets::LuaWidget;
 
+/// internals injector
 pub(super) fn init_internals(lua: &Lua) -> LuaResult<()> {
   let children_table = lua.create_table()?;
 
