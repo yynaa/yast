@@ -1,7 +1,7 @@
 [package]
 name = "yast"
 edition = "2024"
-version = "0.2.0"
+version = "0.3.0-dev"
 description = "Yet Another Speedrunning Timer"
 license = "MIT"
 authors = ["yyna <me@yyna.xyz>"]

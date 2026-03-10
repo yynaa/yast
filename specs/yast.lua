@@ -185,6 +185,11 @@ local analysis_delta_time = {}
 --- @field game_time number | nil
 local analysis_time = {}
 
+--- @class analysis_time_bool
+--- @field real_time bool
+--- @field game_time bool
+local analysis_time_bool = {}
+
 --- @class analysis_timestamp_time
 --- @field time number | nil
 --- @field is_live boolean
@@ -193,7 +198,7 @@ local analysis_timestamp_time = {}
 --- @class analysis_segment_data
 --- @field possible_save_time analysis_timestamp_time
 --- @field total_possible_save_time analysis_timestamp_time
---- @field is_best_segment analysis_time
+--- @field is_best_segment analysis_time_bool
 --- @field last_delta analysis_time
 --- @field live_segment_delta analysis_time
 --- @field previous_segment_delta analysis_time

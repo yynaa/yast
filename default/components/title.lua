@@ -10,38 +10,51 @@ return {
 			:header("Position & Size")
 			:plugin(sizing.plugin)
 			:plugin(background.plugin)
+			:header("Information")
+			:boolean("Show Title", true)
+			:boolean("Show Category", true)
+			:boolean("Show Attempt Counter", true)
+			:boolean("Show Game Icon", true)
 			:header("Text")
-			:plugin(text.plugin("Title", true, true, false))
-			:plugin(text.plugin("Category", true, true, false))
+			:plugin(text.plugin("Title", true, true, false, function(s)
+				return s("Show Title")
+			end))
+			:plugin(text.plugin("Category", true, true, false, function(s)
+				return s("Show Category")
+			end))
 			:plugin(text.plugin("Attempt Counter", true, false, false, function(s)
 				return s("Show Attempt Counter")
 			end))
-			:header("Information")
-			:boolean("Show Attempt Counter", true)
-			:boolean("Show Game Icon", true)
 	end,
 	widget = function()
-		local content_column = widgets
-			.column({
+		local content_column_vec = {}
+		if setting("Show Title") then
+			table.insert(
+				content_column_vec,
 				text.write(run.game_name, "Title")
 					:style(text.color("Title"))
 					:width("fill")
 					:height("fill_portion", text.size("Title"))
 					:align_x(text.align_x("Title"))
 					:align_y("center")
-					:into(),
+					:into()
+			)
+		end
+		if setting("Show Category") then
+			table.insert(
+				content_column_vec,
 				text.write(run.category_name, "Category")
 					:style(text.color("Category"))
 					:width("fill")
 					:height("fill_portion", text.size("Category"))
 					:align_x(text.align_x("Category"))
 					:align_y("center")
-					:into(),
-			})
-			:width("fill")
-			:height("fill")
-			:padding(0, 5, 0, 5)
-			:into()
+					:into()
+			)
+		end
+
+		local content_column =
+			widgets.column(content_column_vec):width("fill"):height("fill"):padding(0, 5, 0, 5):into()
 
 		local stack_vec = {}
 

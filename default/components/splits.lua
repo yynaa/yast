@@ -27,7 +27,7 @@ local function build_segment_icon(segment_index)
 	else
 		local segment = run.segments[segment_index]
 		if segment.icon ~= nil then
-			inner = widgets.image(segment.icon):width("shrink"):height("fill"):content_fit("cover"):into()
+			inner = widgets.image(segment.icon):width("shrink"):height("fill"):content_fit("contain"):into()
 		else
 			inner = widgets.space():width("shrink"):height("fill"):into()
 		end
@@ -67,7 +67,7 @@ local function build_segment_column(segment_index, column_index)
 			comparison = setting("Column " .. math.tointeger(column_index) .. " Comparison")
 		end
 		local timing_method = snapshot.current_timing_method
-		if setting("Column " .. math.tointeger(column_index) .. " Comparison") ~= "Current Comparison" then
+		if setting("Column " .. math.tointeger(column_index) .. " Timing Method") ~= "Current" then
 			timing_method = setting("Column " .. math.tointeger(column_index) .. " Timing Method")
 		end
 		if text_type == "Split Time" then
@@ -146,12 +146,7 @@ return {
 					"Split Time",
 					show_if
 				)
-				:options(
-					"Column " .. i .. " Comparison",
-					{ "Current Comparison", "Best Segments" },
-					"Current Comparison",
-					show_if
-				)
+				:string("Column " .. i .. " Comparison", "Current Comparison", show_if)
 				:options("Column " .. i .. " Timing Method", { "Current", "RealTime", "GameTime" }, "Current", show_if)
 				:number_range("Column " .. i .. " Decimals", 0, 3, 1, 1, show_if)
 		end

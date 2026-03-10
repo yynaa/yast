@@ -149,22 +149,33 @@ local function live_delta(segment, comparison, timing_method)
 	if segment == nil then
 		return nil
 	end
+	segment = math.min(segment, #run.segments)
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
 	local current_split = snapshot.current_split
 	if current_split ~= nil then
 		local analysis_comp_segment = analysis.comparisons[comparison].segments[segment]
+		local ld = timing_accessor(analysis_comp_segment.last_delta, timing_method)
+		local lsd = timing_accessor(analysis_comp_segment.live_segment_delta, timing_method)
 		if current_split == segment then
-			return timing_accessor(
-				accessor_add(
-					accessor_or_zero(analysis_comp_segment.last_delta),
-					analysis_comp_segment.live_segment_delta
-				),
-				timing_method
-			)
+			if ld ~= nil and lsd ~= nil then
+				return ld + lsd
+			elseif lsd ~= nil then
+				return lsd
+			else
+				return nil
+			end
 		elseif segment < current_split then
-			return timing_accessor(analysis_comp_segment.last_delta, timing_method)
+			local run_segment = run.segments[segment]
+			local segment_comp = run_segment.comparisons[comparison]
+			local sc = timing_accessor(segment_comp, timing_method)
+			local psd = timing_accessor(analysis_comp_segment.previous_segment_delta)
+			if sc ~= nil and psd ~= nil then
+				return ld
+			else
+				return nil
+			end
 		else
 			return nil
 		end
@@ -183,28 +194,22 @@ local function live_segment_delta(segment, comparison, timing_method)
 	if segment == nil then
 		return nil
 	end
+	segment = math.min(segment, #run.segments)
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
 	local current_split = snapshot.current_split
 	if current_split ~= nil then
-		local analysis_comp_segment = analysis.comparisons[comparison].segments[segment]
-		if current_split == segment then
-			return timing_accessor(analysis_comp_segment.live_segment_delta, timing_method)
-		elseif current_split > segment then
-			if segment > 1 then
-				return timing_accessor(
-					accessor_sub(
-						analysis_comp_segment.last_delta,
-						analysis.comparisons[comparison].segments[segment - 1].last_delta
-					),
-					timing_method
-				)
-			else
-				return timing_accessor(analysis_comp_segment.last_delta, timing_method)
-			end
+		if segment == 1 then
+			return live_delta(segment, comparison, timing_method)
 		else
-			return nil
+			local a = live_delta(segment, comparison, timing_method)
+			local b = live_delta(segment - 1, comparison, timing_method)
+			if a ~= nil and b ~= nil then
+				return a - b
+			else
+				return nil
+			end
 		end
 	end
 	return nil
@@ -221,6 +226,7 @@ local function live_split_time(segment, comparison, timing_method)
 	if segment == nil then
 		return nil
 	end
+	segment = math.min(segment, #run.segments)
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
@@ -228,10 +234,16 @@ local function live_split_time(segment, comparison, timing_method)
 	local run_segment = run.segments[segment]
 	local segment_comp = run_segment.comparisons[comparison]
 	if current_split ~= nil then
-		if current_split >= segment then
+		if current_split <= segment then
 			return timing_accessor(segment_comp, timing_method)
 		else
-			return timing_accessor(segment_comp, timing_method) + (live_delta(segment, comparison, timing_method) or 0)
+			local sc = timing_accessor(segment_comp, timing_method)
+			local ld = live_delta(segment, comparison, timing_method)
+			if sc ~= nil and ld ~= nil then
+				return sc + ld
+			else
+				return nil
+			end
 		end
 	end
 	return timing_accessor(run_segment.comparisons[comparison], timing_method)
@@ -248,6 +260,7 @@ local function live_segment_time(segment, comparison, timing_method)
 	if segment == nil then
 		return nil
 	end
+	segment = math.min(segment, #run.segments)
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
@@ -261,13 +274,42 @@ local function live_segment_time(segment, comparison, timing_method)
 		)
 	end
 	if current_split ~= nil then
-		if current_split >= segment then
+		if current_split <= segment then
 			return a
 		else
-			return a + (live_segment_delta(segment, comparison, timing_method) or 0)
+			local lsd = live_segment_delta(segment, comparison, timing_method)
+			if a ~= nil and lsd ~= nil then
+				return a + lsd
+			else
+				return nil
+			end
 		end
 	end
 	return a
+end
+
+--- @param timing_method string|nil
+--- @return number|nil
+local function current_segment_time(timing_method)
+	local segment = snapshot.current_split
+	if segment == nil then
+		return nil
+	end
+	segment = math.min(segment, #run.segments)
+	if segment and segment > 1 then
+		local lst = live_split_time(segment - 1, nil, timing_method)
+		if lst ~= nil then
+			local sub = current_time(timing_method) - lst
+			if sub < 0 then
+				log.warn("time.current_segment_time is negative")
+			end
+			return math.max(0, sub)
+		else
+			return nil
+		end
+	else
+		return current_time(timing_method)
+	end
 end
 
 --- @param timing_method string|nil
@@ -293,12 +335,19 @@ local function possible_time_save(segment, comparison, timing_method)
 	if segment == nil then
 		return nil
 	end
+	if segment > #run.segments then
+		return 0
+	end
 	if not comparison then
 		comparison = snapshot.current_comparison
 	end
 	local best_segment_time = live_segment_time(segment, "Best Segments", timing_method)
 	local comp_segment_time = live_segment_time(segment, comparison, timing_method)
-	return comp_segment_time - best_segment_time
+	if comp_segment_time ~= nil then
+		return math.max(0, comp_segment_time - best_segment_time)
+	else
+		return nil
+	end
 end
 
 --- @param comparison string|nil
@@ -310,18 +359,54 @@ local function total_possible_time_save(comparison, timing_method)
 	end
 	local segment = snapshot.current_split
 	if segment ~= nil then
-		local best_time = live_split_time(#run.segments, "Best Segments", timing_method)
-			- live_split_time(segment, "Best Segments", timing_method)
-		local comp_time = live_segment_time(#run.segments, comparison, timing_method)
-			- live_split_time(segment, comparison, timing_method)
-		return comp_time - best_time
+		if segment > #run.segments then
+			return 0
+		end
+		local best_segment = segment
+		local best_segment_time = live_split_time(best_segment, "Best Segments", timing_method)
+		while best_segment_time == nil do
+			best_segment = best_segment + 1
+			if best_segment > #run.segments then
+				break
+			else
+				best_segment_time = live_split_time(best_segment, comparison, timing_method)
+			end
+		end
+		local best_time
+		if best_segment_time ~= nil then
+			best_time = live_split_time(#run.segments, "Best Segments", timing_method) - best_segment_time
+		end
+		local comp_segment = segment
+		local comp_segment_time = live_split_time(comp_segment, comparison, timing_method)
+		while comp_segment_time == nil do
+			comp_segment = comp_segment + 1
+			if comp_segment > #run.segments then
+				break
+			else
+				comp_segment_time = live_split_time(comp_segment, comparison, timing_method)
+			end
+		end
+		local comp_time
+		if comp_segment_time ~= nil then
+			comp_time = live_split_time(#run.segments, comparison, timing_method) - comp_segment_time
+		end
+		local pts = possible_time_save(segment, comparison, timing_method)
+		if not (comp_time == nil or best_time == nil) then
+			if pts == nil then
+				return math.max(0, comp_time - best_time)
+			else
+				return math.max(0, comp_time - best_time + pts)
+			end
+		else
+			return nil
+		end
 	else
 		local best_time = live_split_time(#run.segments, "Best Segments", timing_method)
 		local comp_time = live_split_time(#run.segments, comparison, timing_method)
 		if best_time == nil or comp_time == nil then
 			return nil
 		end
-		return comp_time - best_time
+		return math.max(0, comp_time - best_time)
 	end
 end
 
@@ -329,6 +414,7 @@ return {
 	format = format,
 	format_delta = format_delta,
 	current_time = current_time,
+	current_segment_time = current_segment_time,
 	live_delta = live_delta,
 	live_segment_delta = live_segment_delta,
 	live_split_time = live_split_time,
