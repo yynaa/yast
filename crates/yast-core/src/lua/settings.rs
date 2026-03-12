@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use mlua::prelude::*;
 
-use crate::layout::settings::SettingsValue;
+use crate::layout::settings::{SettingsValue, SettingsValueType};
 
 #[derive(Clone)]
 pub struct SettingsFactoryEntry {
@@ -42,6 +42,10 @@ impl SettingsFactoryValue {
       Self::Color(d) => SettingsValue::Color(d.clone()),
       Self::Image => SettingsValue::Image(None),
     }
+  }
+
+  pub(crate) fn value_type(&self) -> SettingsValueType {
+    self.to_settings_value().value_type()
   }
 }
 

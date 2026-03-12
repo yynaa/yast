@@ -1,6 +1,6 @@
 [package]
 name = "yast-core"
-version = "0.3.0-dev"
+version = "0.3.0"
 description = "Main lib for YASX"
 license = "MIT"
 authors = ["yyna <me@yyna.xyz>"]

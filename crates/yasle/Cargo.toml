@@ -1,6 +1,6 @@
 [package]
 name = "yasle"
-version = "0.3.0-dev"
+version = "0.3.0"
 description = "Yet Another Speedrunning Layout Editor"
 license = "MIT"
 authors = ["yyna <me@yyna.xyz>"]

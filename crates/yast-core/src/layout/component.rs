@@ -75,7 +75,13 @@ impl Component {
     ))?;
     for p in &self.parameters.0 {
       if let SettingsFactoryEntryContent::Value(name, value) = &p.content {
-        if !comp_parameters.contains_key(name) {
+        if let Some(comp_param) = comp_parameters.get(name) {
+          if comp_param.value_type() != value.value_type() {
+            // this is done so changing a parameter's type resets the value
+            // so it doesn t disappear from the layout and requires the user to recreate the component
+            comp_parameters.insert(name.clone(), value.to_settings_value());
+          }
+        } else {
           comp_parameters.insert(name.clone(), value.to_settings_value());
         }
       }

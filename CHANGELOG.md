@@ -9,7 +9,7 @@
 
 ## YAST - `yast`
 
-### Unreleased
+### **0.3.0** - 2026-03-12
 
 #### Added
 
@@ -46,7 +46,7 @@
 
 ## YASLE - `yasle`
 
-### Unreleased
+### **0.3.0** - 2026-03-12
 
 #### Added
 
@@ -84,12 +84,18 @@
 
 ## `yast-core`
 
-### Unreleased
+### **0.3.0** - 2026-03-12
 
 #### Added
 
 - Developer documentation
 - Logic for removing a component in layout
+- New default components
+
+#### Fixed
+
+- `time` library is now significantly more robust to nils
+- Parameter whose type is different in component and in layout now gets updated and set to default on layout load
 
 ### **0.2.0** - 2026-03-05
 
@@ -119,7 +125,7 @@
 
 ## `yast-windows`
 
-### Unreleased
+### **0.1.0** - 2026-03-12
 
 #### Added
 

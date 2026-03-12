@@ -62,3 +62,28 @@ impl SettingsValue {
     Ok(r)
   }
 }
+
+#[derive(PartialEq, Eq)]
+pub(crate) enum SettingsValueType {
+  Boolean,
+  String,
+  Options,
+  Number,
+  NumberRange,
+  Color,
+  Image,
+}
+
+impl SettingsValue {
+  pub(crate) fn value_type(&self) -> SettingsValueType {
+    match self {
+      Self::Boolean(_) => SettingsValueType::Boolean,
+      Self::String(_) => SettingsValueType::String,
+      Self::Options(_) => SettingsValueType::Options,
+      Self::Number(_) => SettingsValueType::Number,
+      Self::NumberRange(_) => SettingsValueType::NumberRange,
+      Self::Color(_) => SettingsValueType::Color,
+      Self::Image(_) => SettingsValueType::Image,
+    }
+  }
+}
