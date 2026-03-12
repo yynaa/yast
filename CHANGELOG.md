@@ -15,6 +15,10 @@
 
 - Developer documentation
 
+#### Changed
+
+- `yast-core` bump to 0.3.0
+
 ### **0.2.0** - 2026-03-05
 
 #### Added
@@ -51,6 +55,10 @@
 #### Added
 
 - Developer documentation
+
+#### Changed
+
+- `yast-core` bump to 0.3.0
 
 #### Fixed
 
